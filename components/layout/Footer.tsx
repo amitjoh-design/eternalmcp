@@ -1,0 +1,111 @@
+import Link from 'next/link'
+import { Zap, Github, Twitter, Globe } from 'lucide-react'
+
+const FOOTER_LINKS = {
+  Platform: [
+    { label: 'Marketplace', href: '/marketplace' },
+    { label: 'Documentation', href: '/docs' },
+    { label: 'Pricing', href: '/pricing' },
+    { label: 'Status', href: '/status' },
+  ],
+  Developers: [
+    { label: 'Publish Tool', href: '/dashboard' },
+    { label: 'API Reference', href: '/docs/api' },
+    { label: 'MCP Protocol', href: '/docs/mcp' },
+    { label: 'GitHub', href: 'https://github.com/amitjoh-design/eternalmcp' },
+  ],
+  Company: [
+    { label: 'About', href: '/about' },
+    { label: 'Blog', href: '/blog' },
+    { label: 'Careers', href: '/careers' },
+    { label: 'Contact', href: '/contact' },
+  ],
+  Legal: [
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Terms of Service', href: '/terms' },
+    { label: 'Cookie Policy', href: '/cookies' },
+  ],
+}
+
+export function Footer() {
+  return (
+    <footer className="border-t border-border-subtle bg-surface/50 backdrop-blur-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-8 mb-12">
+          {/* Brand */}
+          <div className="col-span-2">
+            <Link href="/" className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+                <Zap size={18} className="text-white" />
+              </div>
+              <span className="text-lg font-bold text-text-primary">
+                Eternal<span className="text-primary">MCP</span>
+              </span>
+            </Link>
+            <p className="text-sm text-text-secondary leading-relaxed mb-6 max-w-xs">
+              The infrastructure layer for AI tools. Discover, deploy, and scale MCP services for the next generation of AI automation.
+            </p>
+            <div className="flex items-center gap-3">
+              <a
+                href="https://github.com/amitjoh-design/eternalmcp"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 text-muted hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <Github size={18} />
+              </a>
+              <a
+                href="https://twitter.com/eternalmcp"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 text-muted hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <Twitter size={18} />
+              </a>
+              <a
+                href="https://eternalmcp.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 text-muted hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <Globe size={18} />
+              </a>
+            </div>
+          </div>
+
+          {/* Link columns */}
+          {Object.entries(FOOTER_LINKS).map(([title, links]) => (
+            <div key={title}>
+              <h3 className="text-xs font-semibold text-text-primary uppercase tracking-wider mb-4">
+                {title}
+              </h3>
+              <ul className="space-y-2.5">
+                {links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-border-subtle">
+          <p className="text-sm text-muted">
+            © {new Date().getFullYear()} Eternal MCP. All rights reserved.
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+            <span className="text-xs text-muted">All systems operational</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  )
+}
