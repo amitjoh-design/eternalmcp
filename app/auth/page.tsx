@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import toast from 'react-hot-toast'
 
-export default function AuthPage() {
+function AuthPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'login'
@@ -220,5 +220,13 @@ export default function AuthPage() {
         </p>
       </motion.div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+      <AuthPageContent />
+    </Suspense>
   )
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Shield, CheckCircle, XCircle, Clock, Trash2,
-  Users, Zap, BarChart3, Star, RefreshCw, Eye
+  Users, Zap, BarChart3, Star, RefreshCw, Eye, Settings
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -151,7 +151,7 @@ export default function AdminPage() {
                     {stats.pendingCount} tool{stats.pendingCount !== 1 ? 's' : ''} awaiting review
                   </span>
                 </div>
-                <Button variant="warning" size="sm" onClick={() => setTab('pending')} icon={<Eye size={14} />}>
+                <Button variant="outline" size="sm" onClick={() => setTab('pending')} icon={<Eye size={14} />}>
                   Review Now
                 </Button>
               </div>
@@ -195,7 +195,7 @@ export default function AdminPage() {
 
                     <div className="flex gap-3">
                       <Button
-                        variant="success"
+                        variant="primary"
                         size="sm"
                         icon={<CheckCircle size={15} />}
                         onClick={() => approveTool(tool.id)}
