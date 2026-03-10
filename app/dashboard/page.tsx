@@ -1,19 +1,33 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Plus, Zap, Star, BarChart3, Key, Settings, ChevronRight, Edit, Trash2, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Zap, BarChart3, Key, ChevronRight, Edit, Trash2, Clock, CheckCircle, XCircle, Cpu } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { SubmitToolForm } from '@/components/dashboard/SubmitToolForm'
 import { Analytics } from '@/components/dashboard/Analytics'
+import { McpCard } from '@/components/mcp/McpCard'
+import { InstallModal } from '@/components/mcp/InstallModal'
+import { MCP_REGISTRY } from '@/lib/mcps/registry'
 import { MCPTool, User } from '@/lib/types'
 import { formatDate, formatNumber, getCategoryMeta } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
-type DashboardTab = 'overview' | 'tools' | 'submit' | 'analytics' | 'api-keys'
+type DashboardTab = 'overview' | 'tools' | 'submit' | 'analytics' | 'api-keys' | 'mcps'
+
+interface InstalledMcp {
+  id: string
+  mcp_slug: string
+  mcp_token: string
+  connected_email: string | null
+  status: string
+  call_count: number
+  last_called_at: string | null
+  created_at: string
+}
 
 const STATUS_CONFIG = {
   pending: { label: 'Pending Review', icon: Clock, variant: 'warning' as const },
@@ -22,13 +36,25 @@ const STATUS_CONFIG = {
   archived: { label: 'Archived', icon: XCircle, variant: 'default' as const },
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const [user, setUser] = useState<User | null>(null)
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview')
   const [tools, setTools] = useState<MCPTool[]>([])
+  const [installedMcps, setInstalledMcps] = useState<InstalledMcp[]>([])
+  const [selectedMcp, setSelectedMcp] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+
+  const fetchInstalledMcps = useCallback(async (userId: string) => {
+    const { data } = await supabase
+      .from('installed_mcps')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+    setInstalledMcps((data as InstalledMcp[]) || [])
+  }, [supabase])
 
   useEffect(() => {
     const init = async () => {
@@ -48,10 +74,27 @@ export default function DashboardPage() {
         .order('created_at', { ascending: false })
 
       setTools((userTools as MCPTool[]) || [])
+      await fetchInstalledMcps(authUser.id)
       setLoading(false)
     }
     init()
-  }, [supabase, router])
+  }, [supabase, router, fetchInstalledMcps])
+
+  // Handle redirect back from Gmail OAuth
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    const connected = searchParams.get('mcp_connected')
+    const mcpError = searchParams.get('mcp_error')
+
+    if (tab === 'mcps') setActiveTab('mcps')
+    if (connected) {
+      toast.success(`✅ ${connected} connected successfully!`)
+      setActiveTab('mcps')
+    }
+    if (mcpError) {
+      toast.error(`Gmail connection failed: ${mcpError}`)
+    }
+  }, [searchParams])
 
   const handleDeleteTool = async (toolId: string) => {
     if (!confirm('Are you sure you want to delete this tool? This cannot be undone.')) return
@@ -66,6 +109,7 @@ export default function DashboardPage() {
 
   const TABS = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'mcps', label: 'My MCPs', icon: Cpu },
     { id: 'tools', label: 'My Tools', icon: Zap },
     { id: 'submit', label: 'Submit Tool', icon: Plus },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
@@ -204,6 +248,68 @@ export default function DashboardPage() {
               </motion.div>
             )}
 
+            {/* My MCPs */}
+            {activeTab === 'mcps' && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h2 className="text-lg font-semibold text-text-primary">My MCPs</h2>
+                    <p className="text-sm text-muted mt-0.5">Connected tools available in your AI assistant</p>
+                  </div>
+                </div>
+
+                {/* Available MCPs from registry */}
+                <div className="space-y-3">
+                  {MCP_REGISTRY.map((def, i) => {
+                    const installed = installedMcps.find((m) => m.mcp_slug === def.slug)
+                    return (
+                      <div key={def.slug}>
+                        {installed ? (
+                          <McpCard
+                            installed={installed}
+                            meta={{ slug: def.slug, name: def.name, icon: def.icon, description: def.description }}
+                            onManage={() => setSelectedMcp(def.slug)}
+                            index={i}
+                          />
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            className="bg-surface border border-border-subtle rounded-2xl p-5 flex items-center gap-4"
+                          >
+                            <div className="w-11 h-11 bg-surface-2 rounded-xl flex items-center justify-center text-2xl shrink-0">
+                              {def.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-text-primary text-sm">{def.name}</h3>
+                                {def.verified && (
+                                  <span className="text-xs text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full">✅ Verified</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted mt-0.5 line-clamp-1">{def.description}</p>
+                            </div>
+                            <Button
+                              variant="glow"
+                              size="sm"
+                              onClick={() => setSelectedMcp(def.slug)}
+                            >
+                              + Add
+                            </Button>
+                          </motion.div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="text-center py-6 text-xs text-muted border border-dashed border-border-subtle rounded-xl">
+                  More MCPs coming soon — email, calendar, Slack, Notion &amp; more
+                </div>
+              </motion.div>
+            )}
+
             {/* My Tools */}
             {activeTab === 'tools' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
@@ -314,6 +420,27 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Install / Manage MCP Modal */}
+      {selectedMcp && user && (
+        <InstallModal
+          onClose={() => setSelectedMcp(null)}
+          userId={user.id}
+          installed={installedMcps.find((m) => m.mcp_slug === selectedMcp) ?? null}
+          onConnected={async () => {
+            await fetchInstalledMcps(user.id)
+            setSelectedMcp(null)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen pt-24 flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+      <DashboardContent />
+    </Suspense>
   )
 }
