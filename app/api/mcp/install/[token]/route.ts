@@ -27,8 +27,8 @@ mkdir -p "$CONFIG_DIR"
 python3 << PYEOF
 import json, os
 
-config_file = "${CONFIG_FILE}"
-mcp_url = "${MCP_URL}"
+config_file = "\${CONFIG_FILE}"
+mcp_url = "\${MCP_URL}"
 
 if os.path.exists(config_file):
     try:
