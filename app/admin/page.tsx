@@ -5,17 +5,33 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Shield, CheckCircle, XCircle, Clock, Trash2,
-  Users, Zap, BarChart3, Star, RefreshCw, Eye, Settings
+  Users, Zap, BarChart3, RefreshCw, Eye, Settings,
+  Activity, Download, Globe, Monitor, Mail, FileText
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { MCPTool, User } from '@/lib/types'
-import { formatDate, getCategoryMeta, formatNumber } from '@/lib/utils'
+import { formatDate, getCategoryMeta } from '@/lib/utils'
+import { format, subDays } from 'date-fns'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
-type AdminTab = 'overview' | 'pending' | 'tools' | 'users'
+type AdminTab = 'overview' | 'pending' | 'tools' | 'users' | 'mcp-logs'
+
+interface McpCallLog {
+  id: string
+  tool_name: string
+  to_address: string | null
+  subject: string | null
+  ip_address: string | null
+  user_agent: string | null
+  status: 'success' | 'error'
+  error_message: string | null
+  created_at: string
+  installed_mcp: { mcp_slug: string } | null
+  user: { email: string } | null
+}
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('overview')
@@ -24,6 +40,10 @@ export default function AdminPage() {
   const [allTools, setAllTools] = useState<MCPTool[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [stats, setStats] = useState({ totalTools: 0, totalUsers: 0, pendingCount: 0, approvedCount: 0 })
+  const [mcpLogs, setMcpLogs] = useState<McpCallLog[]>([])
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [fromDate, setFromDate] = useState(() => format(subDays(new Date(), 7), 'yyyy-MM-dd'))
+  const [toDate, setToDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const router = useRouter()
   const supabase = createClient()
 
@@ -80,6 +100,47 @@ export default function AdminPage() {
     toast.success('Tool deleted')
   }
 
+  const fetchMcpLogs = async () => {
+    setLogsLoading(true)
+    const from = `${fromDate}T00:00:00.000Z`
+    const to = `${toDate}T23:59:59.999Z`
+    const { data, error } = await supabase
+      .from('mcp_call_logs')
+      .select('*, installed_mcp:installed_mcps(mcp_slug), user:users!mcp_call_logs_user_id_fkey(email)')
+      .gte('created_at', from)
+      .lte('created_at', to)
+      .order('created_at', { ascending: false })
+    if (error) toast.error('Failed to load logs: ' + error.message)
+    setMcpLogs((data as unknown as McpCallLog[]) || [])
+    setLogsLoading(false)
+  }
+
+  const downloadCsv = () => {
+    const header = ['User', 'MCP', 'Tool', 'To', 'Subject', 'IP Address', 'Device', 'Status', 'Error', 'Date/Time (UTC)']
+    const rows = mcpLogs.map((l) => [
+      l.user?.email ?? '',
+      l.installed_mcp?.mcp_slug ?? '',
+      l.tool_name,
+      l.to_address ?? '',
+      l.subject ?? '',
+      l.ip_address ?? '',
+      l.user_agent ?? '',
+      l.status,
+      l.error_message ?? '',
+      l.created_at,
+    ])
+    const csv = [header, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `mcp-logs-${fromDate}-to-${toDate}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center">
@@ -93,6 +154,7 @@ export default function AdminPage() {
     { id: 'pending', label: `Pending (${stats.pendingCount})`, icon: Clock },
     { id: 'tools', label: 'All Tools', icon: Zap },
     { id: 'users', label: 'Users', icon: Users },
+    { id: 'mcp-logs', label: 'MCP Logs', icon: Activity },
   ] as const
 
   return (
@@ -309,6 +371,124 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
+          </motion.div>
+        )}
+
+        {/* MCP Logs */}
+        {tab === 'mcp-logs' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            {/* Filters */}
+            <div className="bg-surface border border-border-subtle rounded-xl p-4 flex flex-wrap items-end gap-4">
+              <div>
+                <label className="block text-xs text-muted mb-1.5 font-medium">From</label>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="bg-surface-2 border border-border-subtle rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1.5 font-medium">To</label>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="bg-surface-2 border border-border-subtle rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary/50"
+                />
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={fetchMcpLogs}
+                icon={<RefreshCw size={14} className={logsLoading ? 'animate-spin' : ''} />}
+              >
+                {logsLoading ? 'Loading…' : 'Fetch Logs'}
+              </Button>
+              {mcpLogs.length > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={downloadCsv}
+                  icon={<Download size={14} />}
+                  className="ml-auto"
+                >
+                  Download CSV ({mcpLogs.length} rows)
+                </Button>
+              )}
+            </div>
+
+            {/* Summary */}
+            {mcpLogs.length > 0 && (
+              <div className="flex gap-4 text-xs text-muted">
+                <span className="text-text-primary font-semibold">{mcpLogs.length} total records</span>
+                <span className="text-green-400">{mcpLogs.filter((l) => l.status === 'success').length} successful</span>
+                <span className="text-red-400">{mcpLogs.filter((l) => l.status === 'error').length} errors</span>
+              </div>
+            )}
+
+            {/* Table */}
+            {mcpLogs.length > 0 ? (
+              <div className="overflow-x-auto bg-surface border border-border-subtle rounded-xl">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border-subtle">
+                      {['Status', 'User', 'MCP', 'Tool', 'To', 'Subject', 'IP Address', 'Device', 'Date / Time'].map((h) => (
+                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mcpLogs.map((log) => (
+                      <tr key={log.id} className="border-b border-border-subtle hover:bg-white/2 transition-colors">
+                        <td className="px-4 py-3">
+                          {log.status === 'success'
+                            ? <span className="flex items-center gap-1 text-green-400 text-xs"><CheckCircle size={11} /> OK</span>
+                            : <span className="flex items-center gap-1 text-red-400 text-xs" title={log.error_message ?? ''}><XCircle size={11} /> Error</span>}
+                        </td>
+                        <td className="px-4 py-3 text-muted text-xs">{log.user?.email ?? '—'}</td>
+                        <td className="px-4 py-3 text-muted text-xs">{log.installed_mcp?.mcp_slug ?? '—'}</td>
+                        <td className="px-4 py-3 text-xs">
+                          <span className="flex items-center gap-1 text-text-primary">
+                            {log.tool_name === 'send_email' ? <Mail size={11} /> : <FileText size={11} />}
+                            {log.tool_name === 'send_email' ? 'Send Email' : 'Create Draft'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted text-xs max-w-[160px] truncate">{log.to_address ?? '—'}</td>
+                        <td className="px-4 py-3 text-muted text-xs max-w-[180px] truncate italic">{log.subject ?? '—'}</td>
+                        <td className="px-4 py-3 text-xs">
+                          <span className="flex items-center gap-1 text-muted font-mono">
+                            <Globe size={10} />
+                            {log.ip_address ?? '—'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          <span className="flex items-center gap-1 text-muted">
+                            <Monitor size={10} />
+                            {log.user_agent
+                              ? log.user_agent.includes('mcp-remote') ? 'mcp-remote'
+                                : log.user_agent.includes('Windows') ? 'Windows'
+                                : log.user_agent.includes('Mac') ? 'Mac'
+                                : log.user_agent.slice(0, 20)
+                              : '—'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
+                          {format(new Date(log.created_at), 'dd MMM yyyy, HH:mm:ss')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : !logsLoading ? (
+              <div className="text-center py-16 bg-surface border border-border-subtle rounded-xl">
+                <Activity size={36} className="text-border-subtle mx-auto mb-4" />
+                <p className="text-text-secondary text-sm">Select a date range and click Fetch Logs.</p>
+              </div>
+            ) : null}
           </motion.div>
         )}
       </div>

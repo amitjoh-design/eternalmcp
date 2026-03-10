@@ -25,14 +25,26 @@ CREATE INDEX IF NOT EXISTS mcp_call_logs_installed_mcp_id_idx
 CREATE INDEX IF NOT EXISTS mcp_call_logs_user_id_idx
   ON mcp_call_logs (user_id, created_at DESC);
 
--- RLS: users can only see their own logs
+-- ── Retention ─────────────────────────────────────────────────────────────────
+-- Records are NEVER deleted automatically. The only deletion path is if a user
+-- removes their MCP (ON DELETE CASCADE above). Admins can export but not bulk-delete.
+-- ─────────────────────────────────────────────────────────────────────────────
+
 ALTER TABLE mcp_call_logs ENABLE ROW LEVEL SECURITY;
 
+-- Users see only their own logs
 CREATE POLICY "Users see own call logs"
   ON mcp_call_logs FOR SELECT
   USING (user_id = auth.uid());
 
--- Service role can insert (MCP server uses service key)
+-- Admins see ALL logs across all users
+CREATE POLICY "Admins see all call logs"
+  ON mcp_call_logs FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Service role inserts (MCP server uses service key, bypasses RLS anyway)
 CREATE POLICY "Service role inserts logs"
   ON mcp_call_logs FOR INSERT
   WITH CHECK (true);
