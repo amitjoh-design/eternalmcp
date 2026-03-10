@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CheckCircle, BookOpen, Download, Apple, Monitor } from 'lucide-react'
+import { X, CheckCircle, BookOpen, Download, Apple, Monitor, Hammer, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { ConfigSnippet } from './ConfigSnippet'
 
@@ -169,6 +169,62 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
 
             {/* Config snippet with client tabs */}
             <ConfigSnippet token={token} appUrl={appUrl} />
+
+            {/* ── VERIFY IT WORKED ── */}
+            <div className="bg-surface-2 border border-border-subtle rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Hammer size={14} className="text-accent" />
+                <span className="text-sm font-semibold text-text-primary">Verify it worked</span>
+              </div>
+
+              <p className="text-xs text-text-secondary">
+                After restarting Claude Desktop, look for the{' '}
+                <span className="inline-flex items-center gap-0.5 bg-surface border border-border-subtle px-1.5 py-0.5 rounded text-[11px] font-mono text-text-primary">
+                  🔨
+                </span>{' '}
+                <strong className="text-text-primary">tools icon</strong> at the bottom of the chat input box.
+              </p>
+
+              {/* Visual mockup of Claude Desktop chat bar */}
+              <div className="bg-[#1a1a2e] border border-white/10 rounded-xl p-3 space-y-2">
+                <p className="text-[9px] text-white/30 uppercase tracking-wider">Claude Desktop — chat bar</p>
+                <div className="flex items-center gap-2 bg-[#2a2a3e] rounded-lg px-3 py-2">
+                  <span className="text-sm">🔨</span>
+                  <span className="text-xs text-white/40 flex-1">Message Claude...</span>
+                  <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
+                    <span className="text-[10px] text-white/40">↑</span>
+                  </div>
+                </div>
+                <p className="text-[9px] text-white/40 pl-1">
+                  ↑ Click the hammer icon to see all connected tools
+                </p>
+              </div>
+
+              {/* What to see */}
+              <div className="space-y-1.5">
+                <p className="text-xs text-text-secondary font-medium">You should see these tools listed:</p>
+                <div className="flex gap-2">
+                  {['send_email', 'create_draft'].map((tool) => (
+                    <div
+                      key={tool}
+                      className="flex items-center gap-1.5 bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5"
+                    >
+                      <Wrench size={10} className="text-primary" />
+                      <span className="text-[11px] font-mono text-text-primary">{tool}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Test prompt */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-2.5">
+                <p className="text-[10px] text-muted mb-1">Try this prompt in Claude:</p>
+                <p className="text-xs text-text-primary font-mono">
+                  "Send a test email to {email || 'yourself'} with subject Hello from Claude"
+                </p>
+              </div>
+            </div>
+
           </div>
 
           <div className="p-6 pt-0">
