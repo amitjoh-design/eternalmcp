@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Wifi, WifiOff, BarChart3, Clock, Settings, Copy, Check, BookOpen } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { CallLogs } from '@/components/mcp/CallLogs'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -127,6 +128,9 @@ export function McpCard({ installed, meta, onManage, onSetup, index = 0 }: McpCa
           <span className="text-xs text-muted">Never called yet</span>
         )}
       </div>
+
+      {/* Activity Log */}
+      {isConnected && <CallLogs installedMcpId={installed.id} />}
     </motion.div>
   )
 }

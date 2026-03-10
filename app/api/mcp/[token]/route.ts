@@ -96,6 +96,26 @@ export async function POST(
     const toolName = (mcpParams as { name?: string })?.name
     const args = (mcpParams as { arguments?: Record<string, unknown> })?.arguments ?? {}
 
+    // Extract caller metadata for audit log
+    const ipRaw = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown'
+    const ip = ipRaw.split(',')[0].trim()
+    const userAgent = req.headers.get('user-agent') ?? 'unknown'
+
+    // Helper: write audit log entry (fire-and-forget — don't block response)
+    const writeLog = (status: 'success' | 'error', errorMessage?: string) => {
+      db.from('mcp_call_logs').insert({
+        installed_mcp_id: install.id,
+        user_id: install.user_id,
+        tool_name: toolName ?? 'unknown',
+        to_address: args.to as string | undefined,
+        subject: args.subject as string | undefined,
+        ip_address: ip,
+        user_agent: userAgent,
+        status,
+        error_message: errorMessage ?? null,
+      }).then(() => {})
+    }
+
     // Decrypt and refresh token if needed
     let accessToken: string
     try {
@@ -120,8 +140,10 @@ export async function POST(
           .eq('id', install.id)
       }
     } catch (err) {
+      const msg = `Gmail token invalid: ${err instanceof Error ? err.message : err}`
+      writeLog('error', msg)
       return mcpOk(id, {
-        content: [{ type: 'text', text: `Error: Gmail token invalid. Please reconnect via EternalMCP dashboard. (${err instanceof Error ? err.message : err})` }],
+        content: [{ type: 'text', text: `Error: ${msg}. Please reconnect via EternalMCP dashboard.` }],
         isError: true,
       })
     }
@@ -145,6 +167,7 @@ export async function POST(
             bcc: args.bcc as string | undefined,
           }
         )
+        writeLog('success')
         return mcpOk(id, {
           content: [{ type: 'text', text: `✅ Email sent successfully!\nMessage ID: ${result.messageId}\nThread ID: ${result.threadId}` }],
         })
@@ -159,6 +182,7 @@ export async function POST(
             body: args.body as string,
           }
         )
+        writeLog('success')
         return mcpOk(id, {
           content: [{ type: 'text', text: `✅ Draft saved!\nDraft ID: ${result.draftId}` }],
         })
@@ -166,8 +190,10 @@ export async function POST(
 
       return mcpError(id as unknown as number, -32601, `Unknown tool: ${toolName}`)
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      writeLog('error', msg)
       return mcpOk(id, {
-        content: [{ type: 'text', text: `❌ Error: ${err instanceof Error ? err.message : String(err)}` }],
+        content: [{ type: 'text', text: `❌ Error: ${msg}` }],
         isError: true,
       })
     }
