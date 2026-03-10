@@ -22,7 +22,12 @@ function buildConfig(client: ClientTab, token: string, appUrl: string): string {
   const url = `${appUrl}/api/mcp/${token}`
   switch (client) {
     case 'claude':
-      return JSON.stringify({ mcpServers: { gmail: { type: 'http', url } } }, null, 2)
+      // npx mcp-remote works with all Claude Desktop versions (requires Node.js)
+      return JSON.stringify(
+        { mcpServers: { gmail: { command: 'npx', args: ['-y', 'mcp-remote', url] } } },
+        null,
+        2
+      )
     case 'cursor':
       return JSON.stringify({ mcpServers: { gmail: { url } } }, null, 2)
     case 'windsurf':

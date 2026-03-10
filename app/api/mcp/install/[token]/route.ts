@@ -43,11 +43,11 @@ if os.path.exists(config_file):
 else:
     config = {}
 
-# Merge in the Gmail MCP entry
+# Merge in the Gmail MCP entry (npx mcp-remote works with all Claude Desktop versions)
 config.setdefault("mcpServers", {})
 config["mcpServers"]["gmail"] = {
-    "type": "http",
-    "url": mcp_url
+    "command": "npx",
+    "args": ["-y", "mcp-remote", mcp_url]
 }
 
 with open(config_file, "w") as f:
@@ -92,7 +92,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "if (-not $cfg.PSObject.Properties['mcpServers']) { " ^
   "  $cfg | Add-Member -Name 'mcpServers' -Value ([PSCustomObject]@{}) -MemberType NoteProperty " ^
   "}; " ^
-  "$cfg.mcpServers | Add-Member -Name 'gmail' -Value ([PSCustomObject]@{ type='http'; url=$mcpUrl }) -MemberType NoteProperty -Force; " ^
+  "$cfg.mcpServers | Add-Member -Name 'gmail' -Value ([PSCustomObject]@{ command='npx'; args=@('-y','mcp-remote',$mcpUrl) }) -MemberType NoteProperty -Force; " ^
   "$cfg | ConvertTo-Json -Depth 10 | Set-Content $configFile -Encoding UTF8; " ^
   "Write-Host ('  Gmail MCP added to: ' + $configFile)"
 

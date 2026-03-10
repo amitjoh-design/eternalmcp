@@ -178,51 +178,78 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
               </div>
 
               <p className="text-xs text-text-secondary">
-                After restarting Claude Desktop, look for the{' '}
-                <span className="inline-flex items-center gap-0.5 bg-surface border border-border-subtle px-1.5 py-0.5 rounded text-[11px] font-mono text-text-primary">
-                  🔨
-                </span>{' '}
-                <strong className="text-text-primary">tools icon</strong> at the bottom of the chat input box.
+                After restarting Claude Desktop, the{' '}
+                <strong className="text-text-primary">🔨 tools icon</strong> appears in the chat bar
+                bottom-left — next to the <strong className="text-text-primary">+</strong> button.
               </p>
 
-              {/* Visual mockup of Claude Desktop chat bar */}
-              <div className="bg-[#1a1a2e] border border-white/10 rounded-xl p-3 space-y-2">
-                <p className="text-[9px] text-white/30 uppercase tracking-wider">Claude Desktop — chat bar</p>
-                <div className="flex items-center gap-2 bg-[#2a2a3e] rounded-lg px-3 py-2">
-                  <span className="text-sm">🔨</span>
-                  <span className="text-xs text-white/40 flex-1">Message Claude...</span>
-                  <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
-                    <span className="text-[10px] text-white/40">↑</span>
+              {/* Visual mockup matching actual Claude Desktop UI */}
+              <div className="rounded-xl overflow-hidden border border-black/20 shadow-md">
+                {/* Title bar */}
+                <div className="bg-[#f0ede8] flex items-center justify-between px-3 py-2 border-b border-black/10">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+                    <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+                    <div className="w-3 h-3 rounded-full bg-[#28c840]" />
                   </div>
+                  <span className="text-[10px] text-black/40 font-medium">Claude Desktop</span>
+                  <div className="w-12" />
                 </div>
-                <p className="text-[9px] text-white/40 pl-1">
-                  ↑ Click the hammer icon to see all connected tools
-                </p>
+                {/* Chat input area */}
+                <div className="bg-[#f7f4ef] p-3 space-y-2">
+                  <div className="bg-white rounded-xl border border-black/10 px-3 py-2.5 shadow-sm">
+                    <p className="text-[11px] text-black/30 mb-3">Type / for commands</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {/* + button */}
+                        <div className="w-6 h-6 rounded-full bg-black/5 flex items-center justify-center">
+                          <span className="text-[13px] text-black/40 leading-none">+</span>
+                        </div>
+                        {/* Hammer icon — highlighted */}
+                        <div className="w-6 h-6 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center">
+                          <span className="text-[11px] leading-none">🔨</span>
+                        </div>
+                        <div className="text-[9px] text-primary font-semibold animate-pulse">← appears here</div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-black/30">Sonnet 4.6</span>
+                        <div className="w-5 h-5 rounded-md bg-[#d4a89a] flex items-center justify-center">
+                          <span className="text-[9px] text-white">↑</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-black/30 text-center">
+                    Click 🔨 to see connected tools — you should see <code className="bg-black/5 px-1 rounded">send_email</code> and <code className="bg-black/5 px-1 rounded">create_draft</code>
+                  </p>
+                </div>
               </div>
 
               {/* What to see */}
-              <div className="space-y-1.5">
-                <p className="text-xs text-text-secondary font-medium">You should see these tools listed:</p>
-                <div className="flex gap-2">
-                  {['send_email', 'create_draft'].map((tool) => (
-                    <div
-                      key={tool}
-                      className="flex items-center gap-1.5 bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5"
-                    >
-                      <Wrench size={10} className="text-primary" />
-                      <span className="text-[11px] font-mono text-text-primary">{tool}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="flex gap-2">
+                {['send_email', 'create_draft'].map((tool) => (
+                  <div
+                    key={tool}
+                    className="flex items-center gap-1.5 bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5"
+                  >
+                    <Wrench size={10} className="text-primary" />
+                    <span className="text-[11px] font-mono text-text-primary">{tool}</span>
+                  </div>
+                ))}
               </div>
 
               {/* Test prompt */}
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-2.5">
-                <p className="text-[10px] text-muted mb-1">Try this prompt in Claude:</p>
+                <p className="text-[10px] text-muted mb-1">Try this prompt in Claude Desktop:</p>
                 <p className="text-xs text-text-primary font-mono">
-                  "Send a test email to {email || 'yourself'} with subject Hello from Claude"
+                  &quot;Send a test email to {email || 'yourself'} with subject Hello from Claude&quot;
                 </p>
               </div>
+
+              {/* Important: fully quit note */}
+              <p className="text-[10px] text-yellow-400/80">
+                ⚠️ Make sure to <strong>fully quit</strong> Claude Desktop (not just close the window) and reopen it — otherwise the config won&apos;t load.
+              </p>
             </div>
 
           </div>
