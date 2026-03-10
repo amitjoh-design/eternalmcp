@@ -11,6 +11,7 @@ import { SubmitToolForm } from '@/components/dashboard/SubmitToolForm'
 import { Analytics } from '@/components/dashboard/Analytics'
 import { McpCard } from '@/components/mcp/McpCard'
 import { InstallModal } from '@/components/mcp/InstallModal'
+import { SetupModal } from '@/components/mcp/SetupModal'
 import { MCP_REGISTRY } from '@/lib/mcps/registry'
 import { MCPTool, User } from '@/lib/types'
 import { formatDate, formatNumber, getCategoryMeta } from '@/lib/utils'
@@ -42,6 +43,7 @@ function DashboardContent() {
   const [tools, setTools] = useState<MCPTool[]>([])
   const [installedMcps, setInstalledMcps] = useState<InstalledMcp[]>([])
   const [selectedMcp, setSelectedMcp] = useState<string | null>(null)
+  const [setupMcpSlug, setSetupMcpSlug] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -90,6 +92,7 @@ function DashboardContent() {
     if (connected) {
       toast.success(`✅ ${connected} connected successfully!`)
       setActiveTab('mcps')
+      setSetupMcpSlug(connected)
     }
     if (mcpError) {
       toast.error(`Gmail connection failed: ${mcpError}`)
@@ -269,6 +272,7 @@ function DashboardContent() {
                             installed={installed}
                             meta={{ slug: def.slug, name: def.name, icon: def.icon, description: def.description }}
                             onManage={() => setSelectedMcp(def.slug)}
+                            onSetup={() => setSetupMcpSlug(def.slug)}
                             index={i}
                           />
                         ) : (
@@ -433,6 +437,24 @@ function DashboardContent() {
           }}
         />
       )}
+
+      {/* Setup Guide Modal */}
+      {setupMcpSlug && (() => {
+        const def = MCP_REGISTRY.find((d) => d.slug === setupMcpSlug)
+        const installed = installedMcps.find((m) => m.mcp_slug === setupMcpSlug)
+        if (!def || !installed) return null
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.eternalmcp.com'
+        return (
+          <SetupModal
+            token={installed.mcp_token}
+            email={installed.connected_email}
+            mcpName={def.name}
+            mcpIcon={def.icon}
+            appUrl={appUrl}
+            onClose={() => setSetupMcpSlug(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

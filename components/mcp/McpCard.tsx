@@ -1,9 +1,11 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Wifi, WifiOff, BarChart3, Clock, Settings, ExternalLink } from 'lucide-react'
+import { Wifi, WifiOff, BarChart3, Clock, Settings, Copy, Check, BookOpen } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { formatDistanceToNow } from 'date-fns'
+import toast from 'react-hot-toast'
 
 interface InstalledMcp {
   id: string
@@ -27,13 +29,22 @@ interface McpCardProps {
   installed: InstalledMcp
   meta: McpMeta
   onManage: () => void
+  onSetup: () => void
   index?: number
 }
 
-export function McpCard({ installed, meta, onManage, index = 0 }: McpCardProps) {
+export function McpCard({ installed, meta, onManage, onSetup, index = 0 }: McpCardProps) {
+  const [copied, setCopied] = useState(false)
   const isConnected = installed.status === 'connected'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.eternalmcp.com'
   const endpointUrl = `${appUrl}/api/mcp/${installed.mcp_token}`
+
+  const handleCopyUrl = async () => {
+    await navigator.clipboard.writeText(endpointUrl)
+    setCopied(true)
+    toast.success('Endpoint URL copied!')
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <motion.div
@@ -68,9 +79,21 @@ export function McpCard({ installed, meta, onManage, index = 0 }: McpCardProps) 
           </div>
         </div>
 
-        <Button variant="secondary" size="sm" onClick={onManage} icon={<Settings size={13} />}>
-          Manage
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          {isConnected && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onSetup}
+              icon={<BookOpen size={13} />}
+            >
+              Setup Guide
+            </Button>
+          )}
+          <Button variant="secondary" size="sm" onClick={onManage} icon={<Settings size={13} />}>
+            Manage
+          </Button>
+        </div>
       </div>
 
       {/* Endpoint URL */}
@@ -78,11 +101,11 @@ export function McpCard({ installed, meta, onManage, index = 0 }: McpCardProps) 
         <div className="mt-4 flex items-center gap-2 bg-surface-2 rounded-lg px-3 py-2">
           <span className="text-xs text-muted font-mono truncate flex-1">{endpointUrl}</span>
           <button
-            onClick={() => navigator.clipboard.writeText(endpointUrl)}
+            onClick={handleCopyUrl}
             className="text-xs text-primary hover:text-primary-light transition-colors shrink-0 flex items-center gap-1"
           >
-            <ExternalLink size={11} />
-            Copy
+            {copied ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}
+            {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
       )}
