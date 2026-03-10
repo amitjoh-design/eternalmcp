@@ -30,7 +30,12 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Eternal MCP' }],
   creator: 'Eternal MCP',
-  metadataBase: new URL('https://eternalmcp.com'),
+  metadataBase: new URL('https://www.eternalmcp.com'),
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',

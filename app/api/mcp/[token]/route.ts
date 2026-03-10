@@ -63,10 +63,16 @@ export async function POST(
 
   // ── 4. Handle initialize ──────────────────────────────────
   if (method === 'initialize') {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eternalmcp.com'
     return mcpOk(id, {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: GMAIL_MCP_DEFINITION.name, version: GMAIL_MCP_DEFINITION.version },
+      serverInfo: {
+        name: GMAIL_MCP_DEFINITION.name,
+        version: GMAIL_MCP_DEFINITION.version,
+        icon: `${appUrl}/icons/gmail.svg`,
+        description: GMAIL_MCP_DEFINITION.description,
+      },
     })
   }
 
