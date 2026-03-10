@@ -1,7 +1,8 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CheckCircle, BookOpen, Download, Apple, Monitor, Hammer, Wrench } from 'lucide-react'
+import { X, CheckCircle, BookOpen, Download, Apple, Monitor, Hammer, Wrench, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState as useLocalState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { ConfigSnippet } from './ConfigSnippet'
 
@@ -15,6 +16,7 @@ interface SetupModalProps {
 }
 
 export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://www.eternalmcp.com', onClose }: SetupModalProps) {
+  const [showFindGuide, setShowFindGuide] = useLocalState(false)
   const emailParam = email ? `&email=${encodeURIComponent(email)}` : ''
   const macUrl    = `/api/mcp/install/${token}?platform=mac${emailParam}`
   const winUrl    = `/api/mcp/install/${token}?platform=windows${emailParam}`
@@ -165,6 +167,69 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
                   </li>
                 ))}
               </ol>
+            </div>
+
+            {/* ── HOW TO FIND CONFIG FILE ── */}
+            <div className="border border-border-subtle rounded-xl overflow-hidden">
+              <button
+                onClick={() => setShowFindGuide(!showFindGuide)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-surface-2 hover:bg-white/5 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <FolderOpen size={14} className="text-primary" />
+                  <span className="text-xs font-semibold text-text-primary">Where is the config file?</span>
+                </div>
+                {showFindGuide
+                  ? <ChevronUp size={14} className="text-muted" />
+                  : <ChevronDown size={14} className="text-muted" />}
+              </button>
+
+              {showFindGuide && (
+                <div className="p-4 space-y-4 border-t border-border-subtle">
+                  {/* Claude Desktop shortcut */}
+                  <div>
+                    <p className="text-xs font-semibold text-text-primary mb-2">
+                      Easiest way — use Claude Desktop&apos;s built-in button:
+                    </p>
+                    <ol className="space-y-2">
+                      {[
+                        <>Click the <strong className="text-text-primary">☰ three lines</strong> in the top-left of Claude Desktop</>,
+                        <>Go to <strong className="text-text-primary">Settings</strong></>,
+                        <>Click <strong className="text-text-primary">Developer</strong> in the left sidebar</>,
+                        <>Click the <strong className="text-text-primary">Edit Config</strong> button — a folder window opens</>,
+                        <>Open <code className="text-primary bg-primary/10 px-1 rounded">claude_desktop_config.json</code> with <strong className="text-text-primary">Notepad</strong> or <strong className="text-text-primary">VS Code</strong></>,
+                      ].map((step, i) => (
+                        <li key={i} className="flex gap-2.5 text-xs text-text-secondary">
+                          <span className="w-4 h-4 rounded-full bg-primary/20 text-primary text-center text-[10px] font-bold shrink-0 leading-4">{i + 1}</span>
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+
+                  {/* Manual paths */}
+                  <div>
+                    <p className="text-xs font-semibold text-text-primary mb-2">Or navigate there directly:</p>
+                    <div className="space-y-2">
+                      <div className="bg-surface rounded-lg p-2.5">
+                        <p className="text-[10px] text-muted mb-1">🍎 Mac</p>
+                        <code className="text-[11px] text-text-primary break-all">~/Library/Application Support/Claude/</code>
+                      </div>
+                      <div className="bg-surface rounded-lg p-2.5">
+                        <p className="text-[10px] text-muted mb-1">🪟 Windows — Standard installer</p>
+                        <code className="text-[11px] text-text-primary break-all">%APPDATA%\Claude\</code>
+                      </div>
+                      <div className="bg-surface rounded-lg p-2.5">
+                        <p className="text-[10px] text-muted mb-1">🪟 Windows — Microsoft Store version</p>
+                        <code className="text-[11px] text-text-primary break-all">%LOCALAPPDATA%\Packages\Claude_xxx\LocalCache\Roaming\Claude\</code>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted mt-2">
+                      💡 On Windows, paste these paths into the File Explorer address bar and press Enter.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Config snippet with client tabs */}

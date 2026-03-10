@@ -113,12 +113,21 @@ export function ConfigSnippet({ token, appUrl = 'https://www.eternalmcp.com' }: 
         </pre>
       </div>
 
-      <p className="text-xs text-muted">
-        Config file:&nbsp;
-        <span className="text-text-secondary">macOS: {paths.mac}</span>
-        &nbsp;·&nbsp;
-        <span className="text-text-secondary">Windows: {paths.windows}</span>
-      </p>
+      {activeTab === 'claude' ? (
+        <div className="text-xs text-muted space-y-1">
+          <p>🍎 Mac: <span className="text-text-secondary font-mono">~/Library/Application Support/Claude/</span></p>
+          <p>🪟 Windows (standard): <span className="text-text-secondary font-mono">%APPDATA%\Claude\</span></p>
+          <p>🪟 Windows (Store): <span className="text-text-secondary font-mono">%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude\</span></p>
+          <p className="text-[10px]">💡 Find it in Claude Desktop: ☰ → Settings → Developer → Edit Config</p>
+        </div>
+      ) : (
+        <p className="text-xs text-muted">
+          Config file:&nbsp;
+          <span className="text-text-secondary">macOS: {paths.mac}</span>
+          &nbsp;·&nbsp;
+          <span className="text-text-secondary">Windows: {paths.windows}</span>
+        </p>
+      )}
 
       <p className="text-xs text-yellow-400/80">
         ⚡ Restart {tab.label} after saving the config file.
