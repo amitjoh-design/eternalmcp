@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   Shield, CheckCircle, XCircle, Clock, Trash2,
   Users, Zap, BarChart3, RefreshCw, Eye, Settings,
-  Activity, Download, Globe, Monitor, Mail, FileText
+  Activity, Download, Globe, Monitor, Mail, FileText, CreditCard, Plus, Minus
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -17,7 +17,7 @@ import { format, subDays } from 'date-fns'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
-type AdminTab = 'overview' | 'pending' | 'tools' | 'users' | 'mcp-logs'
+type AdminTab = 'overview' | 'pending' | 'tools' | 'users' | 'mcp-logs' | 'credits'
 
 interface McpCallLog {
   id: string
@@ -44,6 +44,10 @@ export default function AdminPage() {
   const [logsLoading, setLogsLoading] = useState(false)
   const [fromDate, setFromDate] = useState(() => format(subDays(new Date(), 7), 'yyyy-MM-dd'))
   const [toDate, setToDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+  const [grantTarget, setGrantTarget] = useState<string | null>(null)
+  const [grantAmount, setGrantAmount] = useState<number>(100)
+  const [grantLoading, setGrantLoading] = useState(false)
+  const [totalResearchReports, setTotalResearchReports] = useState<number>(0)
   const router = useRouter()
   const supabase = createClient()
 
@@ -141,6 +145,36 @@ export default function AdminPage() {
     URL.revokeObjectURL(url)
   }
 
+  const fetchResearchStats = async () => {
+    const { count } = await supabase
+      .from('mcp_call_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('tool_name', 'research_company')
+    setTotalResearchReports(count ?? 0)
+  }
+
+  const grantCredits = async (userId: string, amount: number) => {
+    setGrantLoading(true)
+    const targetUser = users.find((u) => u.id === userId)
+    if (!targetUser) { setGrantLoading(false); return }
+    const current = (targetUser as User & { credit_balance: number }).credit_balance ?? 0
+    const { error } = await supabase
+      .from('users')
+      .update({ credit_balance: current + amount })
+      .eq('id', userId)
+    if (error) {
+      toast.error('Failed to grant credits: ' + error.message)
+    } else {
+      setUsers(users.map((u) =>
+        u.id === userId ? { ...u, credit_balance: current + amount } as User : u
+      ))
+      toast.success(`✅ Granted ₹${amount} credits to ${(targetUser as any).email}`)
+      setGrantTarget(null)
+      setGrantAmount(100)
+    }
+    setGrantLoading(false)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen pt-24 flex items-center justify-center">
@@ -155,6 +189,7 @@ export default function AdminPage() {
     { id: 'tools', label: 'All Tools', icon: Zap },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'mcp-logs', label: 'MCP Logs', icon: Activity },
+    { id: 'credits', label: 'Credits', icon: CreditCard },
   ] as const
 
   return (
@@ -489,6 +524,147 @@ export default function AdminPage() {
                 <p className="text-text-secondary text-sm">Select a date range and click Fetch Logs.</p>
               </div>
             ) : null}
+          </motion.div>
+        )}
+        {/* Credits */}
+        {tab === 'credits' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            {/* Stats bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-surface border border-border-subtle rounded-xl p-5">
+                <CreditCard size={20} className="text-primary mb-3" />
+                <p className="text-2xl font-black text-text-primary">{users.length}</p>
+                <p className="text-xs text-muted mt-1">Total Users</p>
+              </div>
+              <div
+                className="bg-surface border border-border-subtle rounded-xl p-5 cursor-pointer hover:border-primary/30 transition-colors"
+                onClick={fetchResearchStats}
+              >
+                <BarChart3 size={20} className="text-accent mb-3" />
+                <p className="text-2xl font-black text-text-primary">{totalResearchReports}</p>
+                <p className="text-xs text-muted mt-1">Research Reports Generated <span className="text-primary">(click to refresh)</span></p>
+              </div>
+              <div className="bg-surface border border-border-subtle rounded-xl p-5">
+                <Zap size={20} className="text-yellow-400 mb-3" />
+                <p className="text-2xl font-black text-text-primary">
+                  ₹{users.reduce((sum, u) => sum + ((u as User & { credit_balance: number }).credit_balance ?? 0), 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-muted mt-1">Total Credits in Circulation</p>
+              </div>
+            </div>
+
+            {/* Grant Credits Modal */}
+            {grantTarget && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setGrantTarget(null)} />
+                <div className="relative bg-surface border border-border-subtle rounded-2xl p-6 w-full max-w-sm shadow-glass">
+                  <h3 className="text-base font-bold text-text-primary mb-1">Grant Credits</h3>
+                  <p className="text-xs text-muted mb-4">
+                    Granting credits to: <span className="text-text-primary">{users.find((u) => u.id === grantTarget)?.email}</span>
+                  </p>
+                  <div className="mb-4">
+                    <label className="text-xs text-muted block mb-1">Amount (₹)</label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setGrantAmount((a) => Math.max(25, a - 25))}
+                        className="w-8 h-8 flex items-center justify-center bg-surface-2 border border-border-subtle rounded-lg hover:border-primary/30 transition-colors"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <input
+                        type="number"
+                        value={grantAmount}
+                        onChange={(e) => setGrantAmount(Math.max(1, parseInt(e.target.value) || 0))}
+                        className="flex-1 bg-surface-2 border border-border-subtle rounded-lg px-3 py-2 text-center text-sm font-bold text-text-primary outline-none focus:border-primary/50"
+                        min={1}
+                        step={25}
+                      />
+                      <button
+                        onClick={() => setGrantAmount((a) => a + 25)}
+                        className="w-8 h-8 flex items-center justify-center bg-surface-2 border border-border-subtle rounded-lg hover:border-primary/30 transition-colors"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      {[100, 250, 500, 1000].map((amt) => (
+                        <button
+                          key={amt}
+                          onClick={() => setGrantAmount(amt)}
+                          className={`flex-1 text-xs py-1 rounded-lg border transition-colors ${grantAmount === amt ? 'bg-primary/10 border-primary/40 text-primary' : 'border-border-subtle text-muted hover:border-primary/20'}`}
+                        >
+                          ₹{amt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setGrantTarget(null)}
+                      className="flex-1 py-2 text-sm text-muted border border-border-subtle rounded-lg hover:border-primary/20 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => grantCredits(grantTarget, grantAmount)}
+                      disabled={grantLoading}
+                      className="flex-1 py-2 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-primary/80 disabled:opacity-50 transition-colors"
+                    >
+                      {grantLoading ? 'Granting...' : `Grant ₹${grantAmount}`}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Users Credit Table */}
+            <div className="bg-surface border border-border-subtle rounded-xl overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border-subtle">
+                    {['User', 'Role', 'Joined', 'Credit Balance', 'Actions'].map((h) => (
+                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u) => {
+                    const balance = (u as User & { credit_balance: number }).credit_balance ?? 0
+                    return (
+                      <tr key={u.id} className="border-b border-border-subtle hover:bg-white/2 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="text-xs font-medium text-text-primary">{u.email}</p>
+                          {u.name && <p className="text-xs text-muted">{u.name}</p>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs px-2 py-0.5 rounded-full border ${u.role === 'admin' ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-surface-2 border-border-subtle text-muted'}`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted">{formatDate(u.created_at)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-sm font-bold ${balance < 25 ? 'text-red-400' : balance < 100 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                            ₹{balance.toLocaleString()}
+                          </span>
+                          {balance < 25 && <span className="ml-2 text-xs text-red-400/70">Low</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => { setGrantTarget(u.id); setGrantAmount(100) }}
+                            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/70 transition-colors font-medium"
+                          >
+                            <Plus size={12} />
+                            Grant Credits
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </motion.div>
         )}
       </div>

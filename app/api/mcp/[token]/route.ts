@@ -1,12 +1,17 @@
 // MCP Streamable HTTP endpoint
 // POST /api/mcp/[token]
 // Implements MCP protocol spec 2024-11-05
+// Dispatches to Gmail or Research handler based on mcp_slug
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { decryptToken, encryptToken } from '@/lib/mcp-crypto'
 import { sendEmail, createDraft, refreshGmailToken } from '@/lib/mcps/gmail/handler'
-import { GMAIL_MCP_DEFINITION } from '@/lib/mcps/gmail/definition'
+import { handleResearchTool } from '@/lib/mcps/research/handler'
+import { getMcpDefinition } from '@/lib/mcps/registry'
+
+// Vercel: allow up to 5 minutes for research report generation
+export const maxDuration = 300
 
 // Service client bypasses RLS — needed to look up any token
 function getServiceClient() {
@@ -48,8 +53,14 @@ export async function POST(
   }
 
   if (install.status !== 'connected') {
-    return NextResponse.json({ error: 'Gmail not connected. Please connect via EternalMCP dashboard.' }, { status: 403 })
+    return NextResponse.json(
+      { error: 'MCP not connected. Please connect via EternalMCP dashboard.' },
+      { status: 403 }
+    )
   }
+
+  const mcpSlug: string = install.mcp_slug
+  const def = getMcpDefinition(mcpSlug)
 
   // ── 3. Parse MCP JSON-RPC body ────────────────────────────
   let body: { jsonrpc: string; method: string; params?: Record<string, unknown>; id?: unknown }
@@ -68,22 +79,24 @@ export async function POST(
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
       serverInfo: {
-        name: GMAIL_MCP_DEFINITION.name,
-        version: GMAIL_MCP_DEFINITION.version,
-        icon: `${appUrl}/icons/gmail.svg`,
-        description: GMAIL_MCP_DEFINITION.description,
+        name: def?.name ?? mcpSlug,
+        version: def?.version ?? '1.0.0',
+        icon: mcpSlug === 'gmail-sender'
+          ? `${appUrl}/icons/gmail.svg`
+          : `${appUrl}/icons/research.svg`,
+        description: def?.description ?? '',
       },
     })
   }
 
-  // ── 5. Handle notifications/initialized (no response needed) ──
+  // ── 5. Handle notifications/initialized ──────────────────
   if (method === 'notifications/initialized') {
     return new NextResponse(null, { status: 204 })
   }
 
   // ── 6. Handle tools/list ──────────────────────────────────
   if (method === 'tools/list') {
-    return mcpOk(id, { tools: GMAIL_MCP_DEFINITION.tools })
+    return mcpOk(id, { tools: def?.tools ?? [] })
   }
 
   // ── 7. Handle ping ────────────────────────────────────────
@@ -101,7 +114,7 @@ export async function POST(
     const ip = ipRaw.split(',')[0].trim()
     const userAgent = req.headers.get('user-agent') ?? 'unknown'
 
-    // Helper: write audit log entry (fire-and-forget — don't block response)
+    // Fire-and-forget audit log writer
     const writeLog = (status: 'success' | 'error', errorMessage?: string) => {
       db.from('mcp_call_logs').insert({
         installed_mcp_id: install.id,
@@ -116,87 +129,105 @@ export async function POST(
       }).then(() => {})
     }
 
-    // Decrypt and refresh token if needed
-    let accessToken: string
-    try {
-      accessToken = decryptToken(install.access_token_enc)
-
-      if (install.token_expiry && new Date(install.token_expiry) < new Date()) {
-        const refreshToken = decryptToken(install.refresh_token_enc)
-        const refreshed = await refreshGmailToken(
-          refreshToken,
-          process.env.GMAIL_CLIENT_ID!,
-          process.env.GMAIL_CLIENT_SECRET!
-        )
-        accessToken = refreshed.accessToken
-
-        // Update stored token
-        await db
-          .from('installed_mcps')
-          .update({
-            access_token_enc: encryptToken(refreshed.accessToken),
-            token_expiry: refreshed.expiry.toISOString(),
-          })
-          .eq('id', install.id)
-      }
-    } catch (err) {
-      const msg = `Gmail token invalid: ${err instanceof Error ? err.message : err}`
-      writeLog('error', msg)
-      return mcpOk(id, {
-        content: [{ type: 'text', text: `Error: ${msg}. Please reconnect via EternalMCP dashboard.` }],
-        isError: true,
-      })
-    }
-
-    // Update call stats
-    await db
-      .from('installed_mcps')
+    // Update call stats (fire-and-forget)
+    db.from('installed_mcps')
       .update({ call_count: install.call_count + 1, last_called_at: new Date().toISOString() })
       .eq('id', install.id)
+      .then(() => {})
 
-    // Execute tool
-    try {
-      if (toolName === 'send_email') {
-        const result = await sendEmail(
-          { accessToken, refreshToken: '', expiry: null },
-          {
-            to: args.to as string,
-            subject: args.subject as string,
-            body: args.body as string,
-            cc: args.cc as string | undefined,
-            bcc: args.bcc as string | undefined,
-          }
-        )
-        writeLog('success')
+    // ── Dispatch by MCP slug ──────────────────────────────────
+    if (mcpSlug === 'company-research') {
+      try {
+        const result = await handleResearchTool(install, toolName ?? '', args, writeLog, db)
+        return mcpOk(id, result)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        writeLog('error', msg)
         return mcpOk(id, {
-          content: [{ type: 'text', text: `✅ Email sent successfully!\nMessage ID: ${result.messageId}\nThread ID: ${result.threadId}` }],
+          content: [{ type: 'text', text: `❌ Research error: ${msg}` }],
+          isError: true,
         })
       }
-
-      if (toolName === 'create_draft') {
-        const result = await createDraft(
-          { accessToken, refreshToken: '', expiry: null },
-          {
-            to: args.to as string,
-            subject: args.subject as string,
-            body: args.body as string,
-          }
-        )
-        writeLog('success')
-        return mcpOk(id, {
-          content: [{ type: 'text', text: `✅ Draft saved!\nDraft ID: ${result.draftId}` }],
-        })
-      }
-
-      return mcpError(id as unknown as number, -32601, `Unknown tool: ${toolName}`)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      writeLog('error', msg)
-      return mcpOk(id, {
-        content: [{ type: 'text', text: `❌ Error: ${msg}` }],
-        isError: true,
-      })
     }
+
+    // ── Gmail handler ─────────────────────────────────────────
+    if (mcpSlug === 'gmail-sender') {
+      // Decrypt and refresh token if needed
+      let accessToken: string
+      try {
+        accessToken = decryptToken(install.access_token_enc)
+
+        if (install.token_expiry && new Date(install.token_expiry) < new Date()) {
+          const refreshToken = decryptToken(install.refresh_token_enc)
+          const refreshed = await refreshGmailToken(
+            refreshToken,
+            process.env.GMAIL_CLIENT_ID!,
+            process.env.GMAIL_CLIENT_SECRET!
+          )
+          accessToken = refreshed.accessToken
+
+          await db
+            .from('installed_mcps')
+            .update({
+              access_token_enc: encryptToken(refreshed.accessToken),
+              token_expiry: refreshed.expiry.toISOString(),
+            })
+            .eq('id', install.id)
+        }
+      } catch (err) {
+        const msg = `Gmail token invalid: ${err instanceof Error ? err.message : err}`
+        writeLog('error', msg)
+        return mcpOk(id, {
+          content: [{ type: 'text', text: `Error: ${msg}. Please reconnect via EternalMCP dashboard.` }],
+          isError: true,
+        })
+      }
+
+      try {
+        if (toolName === 'send_email') {
+          const result = await sendEmail(
+            { accessToken, refreshToken: '', expiry: null },
+            {
+              to: args.to as string,
+              subject: args.subject as string,
+              body: args.body as string,
+              cc: args.cc as string | undefined,
+              bcc: args.bcc as string | undefined,
+            }
+          )
+          writeLog('success')
+          return mcpOk(id, {
+            content: [{ type: 'text', text: `✅ Email sent successfully!\nMessage ID: ${result.messageId}\nThread ID: ${result.threadId}` }],
+          })
+        }
+
+        if (toolName === 'create_draft') {
+          const result = await createDraft(
+            { accessToken, refreshToken: '', expiry: null },
+            {
+              to: args.to as string,
+              subject: args.subject as string,
+              body: args.body as string,
+            }
+          )
+          writeLog('success')
+          return mcpOk(id, {
+            content: [{ type: 'text', text: `✅ Draft saved!\nDraft ID: ${result.draftId}` }],
+          })
+        }
+
+        return mcpError(id as unknown as number, -32601, `Unknown Gmail tool: ${toolName}`)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        writeLog('error', msg)
+        return mcpOk(id, {
+          content: [{ type: 'text', text: `❌ Error: ${msg}` }],
+          isError: true,
+        })
+      }
+    }
+
+    return mcpError(id as unknown as number, -32601, `Unknown MCP slug: ${mcpSlug}`)
   }
 
   return mcpError(id as unknown as number, -32601, `Method not found: ${method}`)

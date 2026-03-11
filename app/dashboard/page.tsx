@@ -45,6 +45,8 @@ function DashboardContent() {
   const [selectedMcp, setSelectedMcp] = useState<string | null>(null)
   const [setupMcpSlug, setSetupMcpSlug] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [creditBalance, setCreditBalance] = useState<number | null>(null)
+  const [installingMcp, setInstallingMcp] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -66,7 +68,10 @@ function DashboardContent() {
         return
       }
       const { data: profile } = await supabase.from('users').select('*').eq('id', authUser.id).single()
-      if (profile) setUser(profile as User)
+      if (profile) {
+        setUser(profile as User)
+        setCreditBalance((profile as User & { credit_balance: number }).credit_balance ?? 0)
+      }
 
       // Fetch user's tools
       const { data: userTools } = await supabase
@@ -107,6 +112,20 @@ function DashboardContent() {
     } else {
       setTools(tools.filter((t) => t.id !== toolId))
       toast.success('Tool deleted')
+    }
+  }
+
+  const handleDirectInstall = async (slug: string) => {
+    if (!user) return
+    setInstallingMcp(slug)
+    try {
+      const res = await fetch(`/api/mcp/connect/${slug}?userId=${user.id}`, { redirect: 'follow' })
+      // The endpoint redirects to dashboard?mcp_connected=slug — reload to pick up the param
+      window.location.href = `/dashboard?tab=mcps&mcp_connected=${slug}`
+    } catch {
+      toast.error('Failed to install MCP. Please try again.')
+    } finally {
+      setInstallingMcp(null)
     }
   }
 
@@ -259,6 +278,12 @@ function DashboardContent() {
                     <h2 className="text-lg font-semibold text-text-primary">My MCPs</h2>
                     <p className="text-sm text-muted mt-0.5">Connected tools available in your AI assistant</p>
                   </div>
+                  {creditBalance !== null && (
+                    <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5">
+                      <span className="text-xs text-muted">Research Credits</span>
+                      <span className="text-sm font-bold text-primary">₹{creditBalance}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Available MCPs from registry */}
@@ -294,13 +319,24 @@ function DashboardContent() {
                               </div>
                               <p className="text-xs text-muted mt-0.5 line-clamp-1">{def.description}</p>
                             </div>
-                            <Button
-                              variant="glow"
-                              size="sm"
-                              onClick={() => setSelectedMcp(def.slug)}
-                            >
-                              + Add
-                            </Button>
+                            {(def as { requiresOAuth?: boolean }).requiresOAuth === false ? (
+                              <Button
+                                variant="glow"
+                                size="sm"
+                                onClick={() => handleDirectInstall(def.slug)}
+                                disabled={installingMcp === def.slug}
+                              >
+                                {installingMcp === def.slug ? 'Installing...' : '+ Install'}
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="glow"
+                                size="sm"
+                                onClick={() => setSelectedMcp(def.slug)}
+                              >
+                                + Add
+                              </Button>
+                            )}
                           </motion.div>
                         )}
                       </div>
