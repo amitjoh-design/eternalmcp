@@ -1,15 +1,32 @@
-// GET /api/mcp/install/[token]?platform=mac|windows
+// GET /api/mcp/install/[token]?platform=mac|windows&slug=gmail|company-research
 // Returns a personalized install script with the user's token pre-baked.
 
 import { NextRequest, NextResponse } from 'next/server'
 
-function macScript(mcpUrl: string, email: string): string {
-  // NOTE: Use unquoted PYEOF so bash variables ($CONFIG_FILE, $MCP_URL) are expanded
+interface McpMeta {
+  serverKey: string  // key in mcpServers JSON
+  displayName: string
+  testPrompt: string
+}
+
+const MCP_META: Record<string, McpMeta> = {
+  gmail: {
+    serverKey: 'gmail',
+    displayName: 'Gmail MCP',
+    testPrompt: "Send a test email to myself",
+  },
+  'company-research': {
+    serverKey: 'company-research',
+    displayName: 'Company Research MCP',
+    testPrompt: "Research Reliance Industries on NSE and give me the PDF",
+  },
+}
+
+function macScript(mcpUrl: string, meta: McpMeta): string {
   return `#!/bin/bash
 # -------------------------------------------------------
-#  EternalMCP — Gmail MCP Auto-Installer (Mac / Linux)
-#  Connected account: ${email}
-#  Run: bash install-gmail-mcp.sh
+#  EternalMCP — ${meta.displayName} Auto-Installer (Mac / Linux)
+#  Run: bash install-script.sh
 # -------------------------------------------------------
 
 MCP_URL="${mcpUrl}"
@@ -17,7 +34,7 @@ CONFIG_DIR="$HOME/Library/Application Support/Claude"
 CONFIG_FILE="$CONFIG_DIR/claude_desktop_config.json"
 
 echo ""
-echo "  EternalMCP — Gmail MCP Installer"
+echo "  EternalMCP — ${meta.displayName} Installer"
 echo "  ================================="
 echo ""
 
@@ -42,7 +59,7 @@ else:
     config = {}
 
 config.setdefault("mcpServers", {})
-config["mcpServers"]["gmail"] = {
+config["mcpServers"]["${meta.serverKey}"] = {
     "command": "npx",
     "args": ["-y", "mcp-remote", mcp_url]
 }
@@ -50,28 +67,25 @@ config["mcpServers"]["gmail"] = {
 with open(config_file, "w") as f:
     json.dump(config, f, indent=2)
 
-print("  Gmail MCP written to: " + config_file)
+print("  ${meta.displayName} written to: " + config_file)
 PYEOF
 
 echo ""
-echo "  ✅ Done! Gmail MCP installed."
+echo "  ✅ Done! ${meta.displayName} installed."
 echo ""
 echo "  IMPORTANT: Fully quit Claude Desktop (Cmd+Q or right-click Dock icon → Quit)"
 echo "  then reopen it."
 echo ""
-echo "  Then try: 'Send a test email to myself'"
+echo "  Then try: '${meta.testPrompt}'"
 echo ""
 `
 }
 
-function windowsScript(mcpUrl: string, email: string): string {
-  // Build the full PowerShell logic as a clean multi-line script,
-  // then Base64-encode it (UTF-16LE) for -EncodedCommand.
-  // This avoids ALL cmd.exe escaping issues completely.
+function windowsScript(mcpUrl: string, meta: McpMeta): string {
   const ps1 = `
 $mcpUrl = '${mcpUrl}'
 Write-Host ""
-Write-Host "  EternalMCP - Gmail MCP Installer" -ForegroundColor Cyan
+Write-Host "  EternalMCP - ${meta.displayName} Installer" -ForegroundColor Cyan
 Write-Host "  ==================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -141,12 +155,12 @@ if (Test-Path $configFile) {
     $cfg = [PSCustomObject]@{}
 }
 
-# ── Merge in the gmail MCP entry ────────────────────────────────────────────
+# ── Merge in the MCP entry ────────────────────────────────────────────────
 if (-not $cfg.PSObject.Properties['mcpServers']) {
     $cfg | Add-Member -Name 'mcpServers' \`
         -Value ([PSCustomObject]@{}) -MemberType NoteProperty
 }
-$cfg.mcpServers | Add-Member -Name 'gmail' -Value ([PSCustomObject]@{
+$cfg.mcpServers | Add-Member -Name '${meta.serverKey}' -Value ([PSCustomObject]@{
     command = 'npx'
     args    = @('-y', 'mcp-remote', $mcpUrl)
 }) -MemberType NoteProperty -Force
@@ -155,13 +169,13 @@ $cfg.mcpServers | Add-Member -Name 'gmail' -Value ([PSCustomObject]@{
 $cfg | ConvertTo-Json -Depth 10 | Set-Content $configFile -Encoding UTF8
 
 Write-Host ""
-Write-Host "  Gmail MCP installed successfully!" -ForegroundColor Green
+Write-Host "  ${meta.displayName} installed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  IMPORTANT: Fully quit Claude Desktop first:" -ForegroundColor Yellow
 Write-Host "    Right-click the Claude icon in your system tray → Quit"
 Write-Host "    Then reopen Claude Desktop."
 Write-Host ""
-Write-Host "  Then try: 'Send a test email to myself'"
+Write-Host "  Then try: '${meta.testPrompt}'"
 Write-Host ""
 Read-Host "  Press Enter to close"
 `
@@ -171,11 +185,10 @@ Read-Host "  Press Enter to close"
 
   return `@echo off
 :: -------------------------------------------------------
-::  EternalMCP - Gmail MCP Auto-Installer (Windows)
-::  Connected account: ${email}
+::  EternalMCP - ${meta.displayName} Auto-Installer (Windows)
 ::  Double-click this file to run.
 :: -------------------------------------------------------
-title EternalMCP - Gmail MCP Installer
+title EternalMCP - ${meta.displayName} Installer
 powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}
 `
 }
@@ -186,28 +199,30 @@ export async function GET(
 ) {
   const { token } = await params
   const platform = req.nextUrl.searchParams.get('platform') || 'mac'
-  const email = req.nextUrl.searchParams.get('email') || 'your account'
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.eternalmcp.com'
+  const slug     = req.nextUrl.searchParams.get('slug') || 'gmail'
+  const appUrl   = process.env.NEXT_PUBLIC_APP_URL || 'https://www.eternalmcp.com'
 
   if (!token || !token.startsWith('emcp_')) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 400 })
   }
 
-  const mcpUrl = `${appUrl}/api/mcp/${token}`
+  const meta    = MCP_META[slug] ?? MCP_META.gmail
+  const mcpUrl  = `${appUrl}/api/mcp/${token}`
+  const baseName = slug === 'gmail' ? 'gmail-mcp' : slug
 
   if (platform === 'windows') {
-    return new NextResponse(windowsScript(mcpUrl, email), {
+    return new NextResponse(windowsScript(mcpUrl, meta), {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="install-gmail-mcp.bat"',
+        'Content-Disposition': `attachment; filename="install-${baseName}.bat"`,
       },
     })
   }
 
-  return new NextResponse(macScript(mcpUrl, email), {
+  return new NextResponse(macScript(mcpUrl, meta), {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="install-gmail-mcp.sh"',
+      'Content-Disposition': `attachment; filename="install-${baseName}.sh"`,
     },
   })
 }
