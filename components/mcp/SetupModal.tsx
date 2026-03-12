@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CheckCircle, BookOpen, Download, Apple, Monitor, Hammer, Wrench, FolderOpen, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, CheckCircle, BookOpen, Download, Apple, Monitor, Hammer, Wrench, FolderOpen, ChevronDown, ChevronUp, Key, Loader2 } from 'lucide-react'
 import { useState as useLocalState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { ConfigSnippet } from './ConfigSnippet'
@@ -39,10 +39,35 @@ const MCP_CONTENT: Record<string, {
 
 export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://www.eternalmcp.com', slug = 'gmail', onClose }: SetupModalProps) {
   const [showFindGuide, setShowFindGuide] = useLocalState(false)
+  const [apiKey, setApiKey] = useLocalState('')
+  const [apiKeySaving, setApiKeySaving] = useLocalState(false)
+  const [apiKeySaved, setApiKeySaved] = useLocalState(false)
+  const [apiKeyError, setApiKeyError] = useLocalState('')
   const emailParam = email ? `&email=${encodeURIComponent(email)}` : ''
   const macUrl    = `/api/mcp/install/${token}?platform=mac&slug=${slug}${emailParam}`
   const winUrl    = `/api/mcp/install/${token}?platform=windows&slug=${slug}${emailParam}`
   const content   = MCP_CONTENT[slug] ?? MCP_CONTENT.gmail
+
+  const saveApiKey = async () => {
+    if (!apiKey.trim()) return
+    setApiKeySaving(true)
+    setApiKeyError('')
+    try {
+      const res = await fetch('/api/mcp/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, anthropic_api_key: apiKey.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to save')
+      setApiKeySaved(true)
+      setApiKey('')
+    } catch (err) {
+      setApiKeyError(err instanceof Error ? err.message : 'Failed to save key')
+    } finally {
+      setApiKeySaving(false)
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -92,6 +117,63 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
                 <p className="text-xs text-slate-400">Token encrypted and stored securely</p>
               </div>
             </div>
+
+            {/* ── ANTHROPIC API KEY (Company Research only) ── */}
+            {slug === 'company-research' && (
+              <div className="bg-amber-500/5 border border-amber-500/25 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Key size={14} className="text-amber-400" />
+                  <span className="text-sm font-semibold text-white">Your Anthropic API Key</span>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full font-semibold">
+                    Recommended
+                  </span>
+                </div>
+
+                {apiKeySaved ? (
+                  <div className="flex items-center gap-2 p-2.5 bg-emerald-500/10 border border-emerald-500/25 rounded-lg">
+                    <CheckCircle size={14} className="text-emerald-400 shrink-0" />
+                    <p className="text-xs text-emerald-300 font-medium">API key saved — unlimited reports, no credits deducted!</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-300">
+                      Enter your Anthropic API key to generate <strong className="text-white">unlimited reports at no cost</strong>.
+                      Without it, each report costs <strong className="text-amber-300">₹25</strong> from your credit balance.
+                    </p>
+                    <div className="space-y-2">
+                      <input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder="sk-ant-api03-..."
+                        className="w-full bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400/60 font-mono"
+                      />
+                      {apiKeyError && (
+                        <p className="text-[11px] text-red-400">{apiKeyError}</p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <a
+                          href="https://console.anthropic.com/settings/keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-amber-400 hover:text-amber-300 underline underline-offset-2"
+                        >
+                          Get your key at console.anthropic.com →
+                        </a>
+                        <button
+                          onClick={saveApiKey}
+                          disabled={!apiKey.trim() || apiKeySaving}
+                          className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          {apiKeySaving ? <Loader2 size={11} className="animate-spin" /> : <Key size={11} />}
+                          {apiKeySaving ? 'Saving...' : 'Save Key'}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* ── AUTO-INSTALL ── */}
             <div className="bg-indigo-500/5 border border-indigo-500/25 rounded-xl p-4 space-y-3">

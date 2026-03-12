@@ -424,7 +424,7 @@ function renderTableRow(
 // ── Main handler export ───────────────────────────────────────────────────────
 
 export async function handleResearchTool(
-  install: { id: string; user_id: string; call_count: number },
+  install: { id: string; user_id: string; call_count: number; access_token_enc?: string | null },
   toolName: string,
   args: Record<string, unknown>,
   writeLog: (status: 'success' | 'error', error?: string) => void,
@@ -436,7 +436,17 @@ export async function handleResearchTool(
 
   const companyName = (args.company_name as string)?.trim()
   const exchange = (args.exchange as string)?.trim().toUpperCase()
-  const userApiKey = (args.user_api_key as string | undefined)?.trim()
+  // Priority: arg key → stored key (from setup) → platform key
+  const argApiKey = (args.user_api_key as string | undefined)?.trim()
+  let storedApiKey: string | undefined
+  if (!argApiKey && install.access_token_enc) {
+    try {
+      const { decryptToken } = await import('@/lib/mcp-crypto')
+      const decrypted = decryptToken(install.access_token_enc)
+      if (decrypted?.startsWith('sk-ant-')) storedApiKey = decrypted
+    } catch { /* ignore decrypt errors */ }
+  }
+  const userApiKey = argApiKey || storedApiKey
 
   if (!companyName || !exchange) {
     return {
