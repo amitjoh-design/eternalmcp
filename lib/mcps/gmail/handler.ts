@@ -1,5 +1,4 @@
 // Gmail MCP Tool Handler
-// This code runs on EternalMCP servers — read-only for users
 
 interface GmailTokens {
   accessToken: string
@@ -12,7 +11,6 @@ interface RefreshResult {
   expiry: Date
 }
 
-// Refresh expired Gmail access token using refresh token
 export async function refreshGmailToken(
   refreshToken: string,
   clientId: string,
@@ -36,27 +34,24 @@ export async function refreshGmailToken(
   }
 }
 
-// Build RFC 2822 MIME email and base64url encode it
-function buildRawEmail(params: {
+// Build plain-text or HTML email (no attachment)
+function buildSimpleEmail(params: {
   from: string
   to: string
   subject: string
   body: string
   cc?: string
   bcc?: string
-  isHtml?: boolean
 }): string {
-  const isHtml = params.isHtml || params.body.trim().startsWith('<')
-  const contentType = isHtml ? 'text/html' : 'text/plain'
-
+  const isHtml = params.body.trim().startsWith('<')
   const lines = [
     `From: ${params.from}`,
     `To: ${params.to}`,
-    params.cc ? `Cc: ${params.cc}` : null,
+    params.cc  ? `Cc: ${params.cc}`   : null,
     params.bcc ? `Bcc: ${params.bcc}` : null,
     `Subject: ${params.subject}`,
     `MIME-Version: 1.0`,
-    `Content-Type: ${contentType}; charset=utf-8`,
+    `Content-Type: ${isHtml ? 'text/html' : 'text/plain'}; charset=utf-8`,
     ``,
     params.body,
   ]
@@ -70,7 +65,84 @@ function buildRawEmail(params: {
     .replace(/=+$/, '')
 }
 
-// Send email via Gmail API
+// Build multipart/mixed email with one attachment
+function buildEmailWithAttachment(params: {
+  from: string
+  to: string
+  subject: string
+  body: string
+  cc?: string
+  bcc?: string
+  attachmentData: Buffer
+  attachmentFilename: string
+  attachmentMimeType: string
+}): string {
+  const isHtml = params.body.trim().startsWith('<')
+  const bodyContentType = isHtml ? 'text/html' : 'text/plain'
+  const boundary = `----=_Part_${Date.now().toString(36)}`
+  const attachmentB64 = params.attachmentData.toString('base64')
+    // Split into 76-char lines per RFC 2045
+    .match(/.{1,76}/g)!.join('\r\n')
+
+  const mime = [
+    `From: ${params.from}`,
+    `To: ${params.to}`,
+    params.cc  ? `Cc: ${params.cc}`   : null,
+    params.bcc ? `Bcc: ${params.bcc}` : null,
+    `Subject: ${params.subject}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    ``,
+    `--${boundary}`,
+    `Content-Type: ${bodyContentType}; charset=utf-8`,
+    `Content-Transfer-Encoding: quoted-printable`,
+    ``,
+    params.body,
+    ``,
+    `--${boundary}`,
+    `Content-Type: ${params.attachmentMimeType}; name="${params.attachmentFilename}"`,
+    `Content-Transfer-Encoding: base64`,
+    `Content-Disposition: attachment; filename="${params.attachmentFilename}"`,
+    ``,
+    attachmentB64,
+    ``,
+    `--${boundary}--`,
+  ]
+    .filter((l) => l !== null)
+    .join('\r\n')
+
+  return Buffer.from(mime)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+}
+
+// Detect MIME type from URL path or Content-Type header
+function detectMimeType(url: string, contentTypeHeader: string | null): string {
+  if (contentTypeHeader && !contentTypeHeader.includes('octet-stream')) {
+    return contentTypeHeader.split(';')[0].trim()
+  }
+  const path = url.split('?')[0].toLowerCase()
+  if (path.endsWith('.pdf'))  return 'application/pdf'
+  if (path.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  if (path.endsWith('.xlsx')) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  if (path.endsWith('.png'))  return 'image/png'
+  if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg'
+  if (path.endsWith('.csv'))  return 'text/csv'
+  return 'application/octet-stream'
+}
+
+// Derive a sensible filename from a URL
+function filenameFromUrl(url: string): string {
+  const path = url.split('?')[0]
+  const last = path.split('/').pop() || 'attachment'
+  // If it looks like a UUID or random hash with no extension, default to .pdf
+  if (!last.includes('.')) return last + '.pdf'
+  return last
+}
+
+// Send email via Gmail API (supports optional URL attachment)
 export async function sendEmail(
   tokens: GmailTokens,
   params: {
@@ -79,16 +151,45 @@ export async function sendEmail(
     body: string
     cc?: string
     bcc?: string
+    attachment_url?: string
+    attachment_filename?: string
   }
 ): Promise<{ messageId: string; threadId: string }> {
-  // Get sender's email address
   const profileRes = await fetch('https://www.googleapis.com/gmail/v1/users/me/profile', {
     headers: { Authorization: `Bearer ${tokens.accessToken}` },
   })
   const profile = await profileRes.json()
   if (!profileRes.ok) throw new Error('Failed to get Gmail profile: ' + profile.error?.message)
 
-  const raw = buildRawEmail({ from: profile.emailAddress, ...params })
+  let raw: string
+
+  if (params.attachment_url) {
+    // Fetch the attachment from the URL
+    const attachRes = await fetch(params.attachment_url)
+    if (!attachRes.ok) {
+      throw new Error(`Failed to fetch attachment from URL: HTTP ${attachRes.status}`)
+    }
+    const attachBuffer = Buffer.from(await attachRes.arrayBuffer())
+    const mimeType = detectMimeType(
+      params.attachment_url,
+      attachRes.headers.get('content-type')
+    )
+    const filename = params.attachment_filename || filenameFromUrl(params.attachment_url)
+
+    raw = buildEmailWithAttachment({
+      from: profile.emailAddress,
+      to: params.to,
+      subject: params.subject,
+      body: params.body,
+      cc: params.cc,
+      bcc: params.bcc,
+      attachmentData: attachBuffer,
+      attachmentFilename: filename,
+      attachmentMimeType: mimeType,
+    })
+  } else {
+    raw = buildSimpleEmail({ from: profile.emailAddress, ...params })
+  }
 
   const sendRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
@@ -115,7 +216,7 @@ export async function createDraft(
   const profile = await profileRes.json()
   if (!profileRes.ok) throw new Error('Failed to get Gmail profile')
 
-  const raw = buildRawEmail({ from: profile.emailAddress, ...params })
+  const raw = buildSimpleEmail({ from: profile.emailAddress, ...params })
 
   const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
     method: 'POST',

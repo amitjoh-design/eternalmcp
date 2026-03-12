@@ -30,7 +30,7 @@ export const GMAIL_MCP_DEFINITION = {
   tools: [
     {
       name: 'send_email',
-      description: 'Send an email via Gmail. Supports plain text and HTML bodies.',
+      description: 'Send an email via Gmail. Supports plain text and HTML bodies, and optional file attachments via URL (e.g. a PDF report URL returned by research_company).',
       inputSchema: {
         type: 'object',
         properties: {
@@ -39,6 +39,8 @@ export const GMAIL_MCP_DEFINITION = {
           body: { type: 'string', description: 'Email body — plain text or HTML' },
           cc: { type: 'string', description: 'CC email address (optional)' },
           bcc: { type: 'string', description: 'BCC email address (optional)' },
+          attachment_url: { type: 'string', description: 'Public URL of a file to attach (e.g. PDF download link from research_company). The file will be fetched and attached automatically.' },
+          attachment_filename: { type: 'string', description: 'Filename for the attachment (e.g. "reliance-research.pdf"). If omitted, derived from the URL.' },
         },
         required: ['to', 'subject', 'body'],
       },

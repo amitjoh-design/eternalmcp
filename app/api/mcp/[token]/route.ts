@@ -193,11 +193,14 @@ export async function POST(
               body: args.body as string,
               cc: args.cc as string | undefined,
               bcc: args.bcc as string | undefined,
+              attachment_url: args.attachment_url as string | undefined,
+              attachment_filename: args.attachment_filename as string | undefined,
             }
           )
           writeLog('success')
+          const attachNote = args.attachment_url ? `\nAttachment: ${args.attachment_filename || 'file attached'}` : ''
           return mcpOk(id, {
-            content: [{ type: 'text', text: `✅ Email sent successfully!\nMessage ID: ${result.messageId}\nThread ID: ${result.threadId}` }],
+            content: [{ type: 'text', text: `✅ Email sent successfully!${attachNote}\nMessage ID: ${result.messageId}\nThread ID: ${result.threadId}` }],
           })
         }
 
