@@ -8,7 +8,14 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ['@supabase/ssr'],
+    serverComponentsExternalPackages: ['@supabase/ssr', 'pdfkit'],
+  },
+  // Include pdfkit font data files in Vercel serverless bundle
+  outputFileTracingIncludes: {
+    '/api/mcp/**': [
+      './node_modules/pdfkit/js/data/**/*',
+      './node_modules/pdfkit/js/font/**/*',
+    ],
   },
 }
 

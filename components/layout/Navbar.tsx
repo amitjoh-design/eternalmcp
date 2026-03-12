@@ -99,8 +99,8 @@ export function Navbar() {
                 className={cn(
                   'px-4 py-2 text-sm rounded-lg transition-all duration-200',
                   pathname === link.href
-                    ? 'text-text-primary bg-white/5'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                    ? 'text-text-primary bg-black/5'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-black/5'
                 )}
               >
                 {link.label}
@@ -114,7 +114,7 @@ export function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors text-text-secondary hover:text-text-primary"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-black/5 transition-colors text-text-secondary hover:text-text-primary"
                 >
                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs font-bold text-white">
                     {(user.name || user.email)?.[0]?.toUpperCase()}
@@ -140,7 +140,7 @@ export function Navbar() {
                         <Link
                           href="/dashboard"
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-black/5 rounded-lg transition-colors"
                         >
                           <LayoutDashboard size={15} />
                           Dashboard
@@ -148,7 +148,7 @@ export function Navbar() {
                         <Link
                           href="/profile"
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-black/5 rounded-lg transition-colors"
                         >
                           <User size={15} />
                           Profile
@@ -157,7 +157,7 @@ export function Navbar() {
                           <Link
                             href="/admin"
                             onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-black/5 rounded-lg transition-colors"
                           >
                             <Shield size={15} />
                             Admin Panel
@@ -216,7 +216,7 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="px-4 py-3 text-sm text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
+                  className="px-4 py-3 text-sm text-text-secondary hover:text-text-primary hover:bg-black/5 rounded-lg transition-colors"
                 >
                   {link.label}
                 </Link>
