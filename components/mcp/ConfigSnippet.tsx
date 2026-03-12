@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 interface ConfigSnippetProps {
   token: string
   appUrl?: string
+  slug?: string
 }
 
 type ClientTab = 'claude' | 'cursor' | 'windsurf' | 'continue'
@@ -18,23 +19,23 @@ const TABS: { id: ClientTab; label: string; configFile: string }[] = [
   { id: 'continue', label: 'Continue.dev',   configFile: '~/.continue/config.json' },
 ]
 
-function buildConfig(client: ClientTab, token: string, appUrl: string): string {
+function buildConfig(client: ClientTab, token: string, appUrl: string, slug: string): string {
   const url = `${appUrl}/api/mcp/${token}`
   switch (client) {
     case 'claude':
       // npx mcp-remote works with all Claude Desktop versions (requires Node.js)
       return JSON.stringify(
-        { mcpServers: { gmail: { command: 'npx', args: ['-y', 'mcp-remote', url] } } },
+        { mcpServers: { [slug]: { command: 'npx', args: ['-y', 'mcp-remote', url] } } },
         null,
         2
       )
     case 'cursor':
-      return JSON.stringify({ mcpServers: { gmail: { url } } }, null, 2)
+      return JSON.stringify({ mcpServers: { [slug]: { url } } }, null, 2)
     case 'windsurf':
-      return JSON.stringify({ mcpServers: { gmail: { serverUrl: url } } }, null, 2)
+      return JSON.stringify({ mcpServers: { [slug]: { serverUrl: url } } }, null, 2)
     case 'continue':
       return JSON.stringify(
-        { mcpServers: [{ name: 'gmail', transport: { type: 'streamable-http', url } }] },
+        { mcpServers: [{ name: slug, transport: { type: 'streamable-http', url } }] },
         null,
         2
       )
@@ -54,12 +55,12 @@ function getConfigPath(client: ClientTab): { mac: string; windows: string } {
   }
 }
 
-export function ConfigSnippet({ token, appUrl = 'https://www.eternalmcp.com' }: ConfigSnippetProps) {
+export function ConfigSnippet({ token, appUrl = 'https://www.eternalmcp.com', slug = 'gmail' }: ConfigSnippetProps) {
   const [activeTab, setActiveTab] = useState<ClientTab>('claude')
   const [copied, setCopied] = useState(false)
 
   const tab = TABS.find((t) => t.id === activeTab)!
-  const snippet = buildConfig(activeTab, token, appUrl)
+  const snippet = buildConfig(activeTab, token, appUrl, slug)
   const paths = getConfigPath(activeTab)
 
   const handleCopy = async () => {

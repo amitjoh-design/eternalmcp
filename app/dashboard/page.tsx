@@ -487,6 +487,7 @@ function DashboardContent() {
             mcpName={def.name}
             mcpIcon={def.icon}
             appUrl={appUrl}
+            slug={def.slug}
             onClose={() => setSetupMcpSlug(null)}
           />
         )

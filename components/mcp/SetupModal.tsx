@@ -12,14 +12,37 @@ interface SetupModalProps {
   mcpName: string
   mcpIcon: string
   appUrl?: string
+  slug?: string
   onClose: () => void
 }
 
-export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://www.eternalmcp.com', onClose }: SetupModalProps) {
+// Per-MCP content that differs between MCPs
+const MCP_CONTENT: Record<string, {
+  step4: string
+  tools: string[]
+  testPrompt: (email: string | null) => string
+  scriptBaseName: string
+}> = {
+  gmail: {
+    step4: 'Ask your AI to send an email — it will use Gmail automatically',
+    tools: ['send_email', 'create_draft'],
+    testPrompt: (email) => `Send a test email to ${email || 'myself'} with subject Hello from Claude`,
+    scriptBaseName: 'gmail-mcp',
+  },
+  'company-research': {
+    step4: 'Ask your AI to research a company — it will generate a PDF report',
+    tools: ['research_company'],
+    testPrompt: () => 'Research Reliance Industries on NSE and give me the PDF',
+    scriptBaseName: 'research-mcp',
+  },
+}
+
+export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://www.eternalmcp.com', slug = 'gmail', onClose }: SetupModalProps) {
   const [showFindGuide, setShowFindGuide] = useLocalState(false)
   const emailParam = email ? `&email=${encodeURIComponent(email)}` : ''
   const macUrl    = `/api/mcp/install/${token}?platform=mac${emailParam}`
   const winUrl    = `/api/mcp/install/${token}?platform=windows${emailParam}`
+  const content   = MCP_CONTENT[slug] ?? MCP_CONTENT.gmail
 
   return (
     <AnimatePresence>
@@ -64,7 +87,7 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
               <CheckCircle size={16} className="text-green-400 shrink-0" />
               <div>
                 <p className="text-sm font-medium text-text-primary">
-                  Connected{email ? ` as ${email}` : ''}
+                  {email ? `Connected as ${email}` : 'Connected — ready to use'}
                 </p>
                 <p className="text-xs text-muted">Token encrypted and ready to use</p>
               </div>
@@ -88,7 +111,7 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
                 {/* Mac / Linux */}
                 <a
                   href={macUrl}
-                  download="install-gmail-mcp.sh"
+                  download={`install-${content.scriptBaseName}.sh`}
                   className="flex flex-col items-center gap-2 p-3 bg-surface border border-border-subtle hover:border-primary/40 rounded-xl transition-all group"
                 >
                   <div className="w-8 h-8 bg-surface-2 rounded-lg flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -96,7 +119,7 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
                   </div>
                   <div className="text-center">
                     <p className="text-xs font-medium text-text-primary">Mac / Linux</p>
-                    <p className="text-[10px] text-muted mt-0.5">install-gmail-mcp.sh</p>
+                    <p className="text-[10px] text-muted mt-0.5">install-{content.scriptBaseName}.sh</p>
                   </div>
                   <span className="text-[10px] text-primary flex items-center gap-0.5">
                     <Download size={9} /> Download
@@ -106,7 +129,7 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
                 {/* Windows */}
                 <a
                   href={winUrl}
-                  download="install-gmail-mcp.bat"
+                  download={`install-${content.scriptBaseName}.bat`}
                   className="flex flex-col items-center gap-2 p-3 bg-surface border border-border-subtle hover:border-primary/40 rounded-xl transition-all group"
                 >
                   <div className="w-8 h-8 bg-surface-2 rounded-lg flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -114,7 +137,7 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
                   </div>
                   <div className="text-center">
                     <p className="text-xs font-medium text-text-primary">Windows</p>
-                    <p className="text-[10px] text-muted mt-0.5">install-gmail-mcp.bat</p>
+                    <p className="text-[10px] text-muted mt-0.5">install-{content.scriptBaseName}.bat</p>
                   </div>
                   <span className="text-[10px] text-primary flex items-center gap-0.5">
                     <Download size={9} /> Download
@@ -157,7 +180,7 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
                   'Copy the config snippet for your AI client below',
                   <>Open the config file and paste — merge into any existing <code className="text-primary">mcpServers</code> key</>,
                   'Save the file and restart your AI client',
-                  'Ask your AI to send an email — it will use Gmail automatically',
+                  content.step4,
                 ].map((step, i) => (
                   <li key={i} className="flex gap-2.5 text-xs text-text-secondary">
                     <span className="w-4 h-4 rounded-full bg-primary/20 text-primary text-center text-[10px] font-bold shrink-0 leading-4">
@@ -233,7 +256,7 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
             </div>
 
             {/* Config snippet with client tabs */}
-            <ConfigSnippet token={token} appUrl={appUrl} />
+            <ConfigSnippet token={token} appUrl={appUrl} slug={slug} />
 
             {/* ── VERIFY IT WORKED ── */}
             <div className="bg-surface-2 border border-border-subtle rounded-xl p-4 space-y-3">
@@ -285,14 +308,17 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
                     </div>
                   </div>
                   <p className="text-[9px] text-black/30 text-center">
-                    Click 🔨 to see connected tools — you should see <code className="bg-black/5 px-1 rounded">send_email</code> and <code className="bg-black/5 px-1 rounded">create_draft</code>
+                    Click 🔨 to see connected tools — you should see{' '}
+                    {content.tools.map((t, i) => (
+                      <span key={t}>{i > 0 && ' and '}<code className="bg-black/5 px-1 rounded">{t}</code></span>
+                    ))}
                   </p>
                 </div>
               </div>
 
               {/* What to see */}
               <div className="flex gap-2">
-                {['send_email', 'create_draft'].map((tool) => (
+                {content.tools.map((tool) => (
                   <div
                     key={tool}
                     className="flex items-center gap-1.5 bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5"
@@ -307,7 +333,7 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-2.5">
                 <p className="text-[10px] text-muted mb-1">Try this prompt in Claude Desktop:</p>
                 <p className="text-xs text-text-primary font-mono">
-                  &quot;Send a test email to {email || 'yourself'} with subject Hello from Claude&quot;
+                  &quot;{content.testPrompt(email)}&quot;
                 </p>
               </div>
 
