@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Wifi, WifiOff, BarChart3, Clock, Settings, Copy, Check, BookOpen } from 'lucide-react'
+import { Wifi, WifiOff, BarChart3, Clock, Settings, Copy, Check, BookOpen, Unplug } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { CallLogs } from '@/components/mcp/CallLogs'
@@ -31,11 +31,13 @@ interface McpCardProps {
   meta: McpMeta
   onManage: () => void
   onSetup: () => void
+  onDisconnected: () => void
   index?: number
 }
 
-export function McpCard({ installed, meta, onManage, onSetup, index = 0 }: McpCardProps) {
+export function McpCard({ installed, meta, onManage, onSetup, onDisconnected, index = 0 }: McpCardProps) {
   const [copied, setCopied] = useState(false)
+  const [disconnecting, setDisconnecting] = useState(false)
   const isConnected = installed.status === 'connected'
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.eternalmcp.com'
   const endpointUrl = `${appUrl}/api/mcp/${installed.mcp_token}`
@@ -45,6 +47,24 @@ export function McpCard({ installed, meta, onManage, onSetup, index = 0 }: McpCa
     setCopied(true)
     toast.success('Endpoint URL copied!')
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleDisconnect = async () => {
+    if (!confirm(`Disconnect ${meta.name}? This will remove the MCP from your account and your AI clients will stop working until you reconnect.`)) return
+    setDisconnecting(true)
+    try {
+      const res = await fetch('/api/mcp/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ installed_id: installed.id }),
+      })
+      if (!res.ok) throw new Error('Failed to disconnect')
+      toast.success(`${meta.name} disconnected`)
+      onDisconnected()
+    } catch {
+      toast.error('Failed to disconnect. Please try again.')
+      setDisconnecting(false)
+    }
   }
 
   return (
@@ -93,6 +113,16 @@ export function McpCard({ installed, meta, onManage, onSetup, index = 0 }: McpCa
           )}
           <Button variant="secondary" size="sm" onClick={onManage} icon={<Settings size={13} />}>
             Manage
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDisconnect}
+            disabled={disconnecting}
+            icon={<Unplug size={13} />}
+            className="text-red-500 hover:text-red-600 hover:bg-red-50 border border-red-200"
+          >
+            {disconnecting ? '...' : 'Disconnect'}
           </Button>
         </div>
       </div>

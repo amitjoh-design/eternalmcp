@@ -298,6 +298,7 @@ function DashboardContent() {
                             meta={{ slug: def.slug, name: def.name, icon: def.icon, description: def.description }}
                             onManage={() => setSelectedMcp(def.slug)}
                             onSetup={() => setSetupMcpSlug(def.slug)}
+                            onDisconnected={() => fetchInstalledMcps(user!.id)}
                             index={i}
                           />
                         ) : (
@@ -466,6 +467,7 @@ function DashboardContent() {
         <InstallModal
           onClose={() => setSelectedMcp(null)}
           userId={user.id}
+          slug={selectedMcp}
           installed={installedMcps.find((m) => m.mcp_slug === selectedMcp) ?? null}
           onConnected={async () => {
             await fetchInstalledMcps(user.id)

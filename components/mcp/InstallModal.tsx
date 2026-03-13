@@ -21,19 +21,82 @@ interface InstalledMcp {
 interface InstallModalProps {
   onClose: () => void
   userId: string
+  slug: string
   installed?: InstalledMcp | null
   onConnected?: () => void
 }
 
 type Step = 'overview' | 'source' | 'connected'
 
-export function InstallModal({ onClose, userId, installed, onConnected }: InstallModalProps) {
+export function InstallModal({ onClose, userId, slug, installed, onConnected }: InstallModalProps) {
   const [step, setStep] = useState<Step>(
     installed?.status === 'connected' ? 'connected' : 'overview'
   )
   const [showSource, setShowSource] = useState(false)
-  const def = GMAIL_MCP_DEFINITION
+  const isGmail = slug === 'gmail-sender'
+  const def = GMAIL_MCP_DEFINITION // used only for gmail
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.eternalmcp.com'
+
+  // For non-Gmail MCPs (e.g. company-research), show a simpler manage view
+  if (!isGmail) {
+    return (
+      <AnimatePresence>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative w-full max-w-lg bg-surface border border-border-subtle rounded-2xl shadow-glass overflow-hidden"
+          >
+            <div className="flex items-center justify-between p-6 border-b border-border-subtle">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-surface-2 rounded-xl flex items-center justify-center text-2xl">📊</div>
+                <div>
+                  <h2 className="font-bold text-text-primary">Company Research</h2>
+                  <p className="text-xs text-muted">by EternalMCP · ✅ Verified</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="text-muted hover:text-text-primary transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {installed ? (
+                <>
+                  <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                    <CheckCircle size={20} className="text-green-400 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">Company Research Connected</p>
+                      <p className="text-xs text-muted">Ready to generate equity research reports</p>
+                    </div>
+                  </div>
+                  <ConfigSnippet token={installed.mcp_token} appUrl={appUrl} />
+                  <div className="text-xs text-muted space-y-1 pt-2 border-t border-border-subtle">
+                    <p>Total calls: <span className="text-text-secondary">{installed.call_count}</span></p>
+                    {installed.last_called_at && (
+                      <p>Last used: <span className="text-text-secondary">{new Date(installed.last_called_at).toLocaleString()}</span></p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-text-secondary">This MCP is not yet connected.</p>
+              )}
+            </div>
+            <div className="p-6 pt-0">
+              <Button variant="secondary" onClick={onClose} className="w-full">Close</Button>
+            </div>
+          </motion.div>
+        </div>
+      </AnimatePresence>
+    )
+  }
 
   const handleConnect = () => {
     window.location.href = `/api/mcp/connect/gmail?userId=${userId}`
