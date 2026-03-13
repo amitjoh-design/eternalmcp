@@ -329,7 +329,7 @@ async function generateResearchPDF(
 
     } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       const content = stripInlineMarkdown(trimmed.replace(/^[*-] /, ''))
-      const wrapped = wrapText(`\u2022  ${content}`, regular, 9.5, CONTENT_W - 14)
+      const wrapped = wrapText(`*  ${content}`, regular, 9.5, CONTENT_W - 14)
       for (const wl of wrapped) {
         ensureY(14)
         curPage.drawText(wl, { x: MARGIN + 10, y: curY, font: regular, size: 9.5, color: C_TEXT })
@@ -357,7 +357,7 @@ async function generateResearchPDF(
         // truncate to fit cell
         let display = cellText
         while (display.length > 1 && bold.widthOfTextAtSize(display, 8.5) > cellW - 8) {
-          display = display.slice(0, -2) + '…'
+          display = display.slice(0, -2) + '..'
         }
         curPage.drawText(display, {
           x: cx, y: curY - 13,
