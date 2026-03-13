@@ -498,13 +498,17 @@ export async function handleResearchTool(
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8096,
+      max_tokens: 16000,
       messages: [{ role: 'user', content: prompt }],
     })
     reportText = message.content
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
       .map((b) => b.text)
       .join('\n')
+    // Append a note if output was cut off at the token limit
+    if (message.stop_reason === 'max_tokens') {
+      reportText += '\n\n---\n\n**Note: Report was truncated due to output length limits. Key sections above are complete. Please request specific sections for more detail.**'
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     writeLog('error', `Claude API error: ${msg}`)
