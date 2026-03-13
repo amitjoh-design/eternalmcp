@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Zap, Github, Twitter, Globe } from 'lucide-react'
+import { Zap, Github, Twitter, Globe, ExternalLink } from 'lucide-react'
 
 const FOOTER_LINKS = {
   Platform: [
@@ -27,6 +27,12 @@ const FOOTER_LINKS = {
   ],
 }
 
+const ECOSYSTEM_LINKS = [
+  { label: 'EternalQuants', href: 'https://eternalquants.com', description: 'Quantitative trading research' },
+  { label: 'Gnosis Tech Advisors', href: 'https://gnosistechadvisors.com', description: 'Enterprise IT advisory' },
+  { label: 'DeltaFlow Technologies', href: '#', description: 'Trading software partner' },
+]
+
 export function Footer() {
   return (
     <footer className="border-t border-border-subtle bg-surface/50 backdrop-blur-sm">
@@ -42,8 +48,19 @@ export function Footer() {
                 Eternal<span className="text-primary">MCP</span>
               </span>
             </Link>
-            <p className="text-sm text-text-secondary leading-relaxed mb-6 max-w-xs">
-              The infrastructure layer for AI tools. Discover, deploy, and scale MCP services for the next generation of AI automation.
+            <p className="text-sm text-text-secondary leading-relaxed mb-3 max-w-xs">
+              India&apos;s only Claude-dedicated MCP platform. Bringing Constitutional AI to 1.4 billion people — zero code required.
+            </p>
+            <p className="text-xs text-muted mb-5">
+              Under{' '}
+              <a
+                href="https://gnosistechadvisors.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:text-primary-light transition-colors"
+              >
+                Gnosis Tech Advisors
+              </a>
             </p>
             <div className="flex items-center gap-3">
               <a
@@ -95,11 +112,38 @@ export function Footer() {
           ))}
         </div>
 
+        {/* Ecosystem band */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-primary/5 border border-primary/10 rounded-xl mb-8">
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider flex-shrink-0">
+            Ecosystem
+          </span>
+          <div className="flex flex-wrap gap-6">
+            {ECOSYSTEM_LINKS.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors group"
+              >
+                <span className="font-medium">{link.label}</span>
+                <ExternalLink size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span className="text-xs text-muted">· {link.description}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-border-subtle">
-          <p className="text-sm text-muted">
-            © {new Date().getFullYear()} Eternal MCP. All rights reserved.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <p className="text-sm text-muted">
+              © {new Date().getFullYear()} EternalMCP · Gnosis Tech Advisors. All rights reserved.
+            </p>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 rounded-full">
+              <span className="text-xs text-orange-300">🇮🇳 Built for Bharat</span>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
             <span className="text-xs text-muted">All systems operational</span>
