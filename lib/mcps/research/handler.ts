@@ -1,156 +1,72 @@
 // Company Research MCP — Tool Handler
-// Calls Claude API → generates PDF → uploads to Supabase Storage → returns signed URL
+// Calls Claude API -> generates PDF -> uploads to Supabase Storage -> returns signed URL
 
 import Anthropic from '@anthropic-ai/sdk'
 import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'pdf-lib'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // ── Institutional Research Prompt ────────────────────────────────────────────
-const RESEARCH_PROMPT = `Role: Act as a Senior Equity Research Analyst with 20+ years of experience in institutional investing, fundamental analysis, and valuation (similar to analysts at Goldman Sachs, Morgan Stanley, or top hedge funds).
+const RESEARCH_PROMPT = `You are a Senior Equity Research Analyst. Write a professional institutional research report for COMPANY_NAME listed on EXCHANGE.
 
-Your task is to produce a professional equity research report on COMPANY_NAME listed on EXCHANGE.
+Use your training knowledge. Write "N/A" for any data you are not confident about.
+IMPORTANT: Complete ALL 9 sections fully. Do not truncate or stop early.
 
-The report should be data-driven, structured, and written in institutional research style suitable for investment committees and professional investors.
-If reliable financial data is unavailable, clearly state "Data Not Available" rather than estimating.
+# 1. Executive Summary
+3-4 sentences: company overview, market position, and investment view (BUY/HOLD/SELL with primary reason).
 
-# 1. Sector Analysis & Macro Environment
+# 2. Business Overview
+- Core business and revenue segments (3-5 bullets)
+- Key competitive advantages / moat
+- Recent strategic developments (last 12 months: earnings, orders, M&A, launches)
 
-## Industry Overview
-- Sector size and growth trends
-- Industry life-cycle stage
-- Global vs domestic market dynamics
+# 3. Sector & Macro Analysis
+- Industry size and growth trend
+- Key macro drivers (interest rates, regulation, commodity prices, demand)
+- 3 tailwinds and 3 headwinds for the sector
 
-## Macro Drivers
-Explain key macro factors influencing the sector:
-- Interest rates
-- Inflation
-- Commodity prices
-- Regulation
-- Technological disruption
-- Consumer demand trends
+# 4. Financial Snapshot
 
-## Key Tailwinds
-Identify 3–5 major growth drivers.
+| Metric | FY2022 | FY2023 | FY2024 |
+|--------|--------|--------|--------|
+| Revenue (Cr) | | | |
+| Revenue Growth % | | | |
+| EBITDA Margin % | | | |
+| Net Profit (Cr) | | | |
+| EPS (Rs) | | | |
+| ROE % | | | |
+| Debt/Equity | | | |
 
-## Key Headwinds
-Identify 3–5 structural risks or challenges.
-
-## Sector SWOT Analysis
-**Strengths:** [list]
-**Weaknesses:** [list]
-**Opportunities:** [list]
-**Threats:** [list]
-
-# 2. Company Positioning within the Sector
-
-## Market Position
-- Market share
-- Competitive advantages (moat): brand power, cost leadership, network effects, switching costs, patents/technology
-
-## Competitive Benchmarking
-Compare COMPANY_NAME against top 3 competitors:
-
-| Metric | COMPANY_NAME | Competitor 1 | Competitor 2 | Competitor 3 |
-|--------|-------------|-------------|-------------|-------------|
-| Revenue Growth | | | | |
-| EBITDA Margin | | | | |
-| ROE | | | | |
-| Market Share | | | | |
-
-## Company SWOT Analysis
-**Strengths:** [list]
-**Weaknesses:** [list]
-**Opportunities:** [list]
-**Threats:** [list]
-
-# 3. Recent Developments & Market Sentiment
-
-Summarize the most important developments in the past 6 months:
-- Earnings announcements
-- Management commentary
-- Strategic initiatives
-- M&A activity
-- Regulatory developments
-- Product launches
-- Institutional investor positioning
-
-## Market Sentiment
-- Analyst upgrades/downgrades
-- Institutional ownership trends
-- Retail sentiment
-- Market narrative around the stock
-
-# 4. Fundamental Analysis
-
-## Revenue & Growth
-- Revenue CAGR (3–5 year)
-- Segment contribution
-- Growth sustainability
-
-## Profitability
-
-| Metric | Year 1 | Year 2 | Year 3 | Year 4 | Year 5 |
-|--------|--------|--------|--------|--------|--------|
-| Revenue | | | | | |
-| EBITDA Margin | | | | | |
-| Net Profit | | | | | |
-| Net Margin | | | | | |
-
-Interpret trends and explain the drivers.
-
-## Solvency & Balance Sheet Strength
-- Debt-to-Equity
-- Interest Coverage
-- Current Ratio
-- Free Cash Flow
-
-## Efficiency & Capital Allocation
-- Return on Equity (ROE)
-- Return on Capital Employed (ROCE)
-- Asset Turnover
-- Management capital allocation discipline
+Financial trend: 3-4 sentences on revenue trajectory, margin trends, and balance sheet strength.
 
 # 5. Valuation Analysis
 
-| Metric | Current | 5Y Historical Avg | Industry Median |
-|--------|---------|------------------|-----------------|
+| Multiple | Current | 5Y Avg | Sector Median |
+|----------|---------|--------|---------------|
 | P/E | | | |
 | P/B | | | |
 | EV/EBITDA | | | |
 
-Is the stock Undervalued, Fairly Valued, or Overvalued? Explain with reasoning.
+Valuation verdict (Undervalued/Fairly Valued/Overvalued) with 2-3 sentences of reasoning.
 
-# 6. Investment Thesis
+# 6. Competitive Benchmarking
+Compare COMPANY_NAME vs 2-3 key competitors on: market share, margins, growth rate, competitive moat.
 
-Provide 3–5 key reasons an investor should own this stock.
-
-**Thesis 1:** [Explanation]
-**Thesis 2:** [Explanation]
-**Thesis 3:** [Explanation]
-
-# 7. Key Catalysts
-
-Identify potential events that could move the stock price:
-- Earnings surprises
-- Regulatory changes
-- Product launches
-- Industry cycle shifts
-- Macro changes
+# 7. Investment Thesis
+3 key reasons to own this stock — each as a paragraph with specifics.
 
 # 8. Key Risks
+Top 4 risks that could invalidate the thesis — each explained in 2-3 sentences.
 
-Identify top 3–5 risks that could invalidate the investment thesis. Explain each clearly.
-
-# 9. Final Investment Recommendation
+# 9. Investment Recommendation
 
 **Rating:** BUY / HOLD / SELL
-**Confidence Index:** [1–10]
-**Investment Horizon:** Short-term / Medium-term / Long-term
-
-**Summary Conclusion:** [Concise final investment view in 2–3 sentences]
+**Target Price:** (if estimable, else N/A)
+**Time Horizon:** Short (< 1 yr) / Medium (1-3 yr) / Long (3+ yr)
+**Conviction Level:** High / Medium / Low
+**Investment Summary:** 3-4 sentence conclusion for an investment committee.
 
 ---
-Data Integrity: Use only verifiable financial data. Write "Data Not Available" if information cannot be confirmed. Avoid speculation.`
+DISCLAIMER: AI-generated report for informational purposes only. Not investment advice.`
 
 // ── Strip inline markdown ──────────────────────────────────────────────────────
 function stripInlineMarkdown(text: string): string {
@@ -177,13 +93,12 @@ async function generateResearchPDF(
   const MARGIN    = 60
   const CONTENT_W = PAGE_W - MARGIN * 2
 
-  const C_PRIMARY = rgb(0.388, 0.400, 0.945)  // #6366f1
-  const C_TEXT    = rgb(0.122, 0.161, 0.216)  // #1f2937
-  const C_MUTED   = rgb(0.420, 0.447, 0.502)  // #6b7280
-  const C_LIGHT   = rgb(0.216, 0.255, 0.318)  // #374151
+  const C_PRIMARY = rgb(0.388, 0.400, 0.945)
+  const C_TEXT    = rgb(0.122, 0.161, 0.216)
+  const C_MUTED   = rgb(0.420, 0.447, 0.502)
+  const C_LIGHT   = rgb(0.216, 0.255, 0.318)
   const C_WHITE   = rgb(1, 1, 1)
 
-  // Word-wrap helper
   function wrapText(text: string, font: PDFFont, size: number, maxW: number): string[] {
     if (!text.trim()) return ['']
     const words = text.split(' ')
@@ -210,7 +125,6 @@ async function generateResearchPDF(
     const page = pdfDoc.addPage([PAGE_W, PAGE_H])
     pages.push(page)
     curPage = page
-    // Header bar
     page.drawRectangle({ x: 0, y: PAGE_H - 32, width: PAGE_W, height: 32, color: C_PRIMARY })
     page.drawText(`EternalMCP Research  |  ${companyName}`, {
       x: MARGIN, y: PAGE_H - 21, font: bold, size: 9, color: C_WHITE,
@@ -226,7 +140,7 @@ async function generateResearchPDF(
     day: '2-digit', month: 'long', year: 'numeric',
   })
 
-  // ── Title Page ──────────────────────────────────────────────────────────────
+  // Title Page
   const titlePage = pdfDoc.addPage([PAGE_W, PAGE_H])
   pages.push(titlePage)
 
@@ -236,7 +150,6 @@ async function generateResearchPDF(
     x: MARGIN, y: PAGE_H - 56, font: regular, size: 10, color: rgb(0.78, 0.824, 0.988),
   })
 
-  // Company name with word wrap
   const cNameLines = wrapText(companyName.toUpperCase(), bold, 22, CONTENT_W)
   let titleY = PAGE_H - 128
   for (const cl of cNameLines) {
@@ -247,14 +160,12 @@ async function generateResearchPDF(
   titlePage.drawText(`${exchange}  |  ${dateStr}`, {
     x: MARGIN, y: titleY - 4, font: regular, size: 12, color: C_MUTED,
   })
-  titlePage.drawText('CONFIDENTIAL — For Professional Investors Only', {
+  titlePage.drawText('CONFIDENTIAL - For Professional Investors Only', {
     x: MARGIN, y: titleY - 22, font: regular, size: 9, color: C_MUTED,
   })
 
-  // Divider
   titlePage.drawRectangle({ x: MARGIN, y: titleY - 38, width: CONTENT_W, height: 2, color: C_PRIMARY })
 
-  // Info boxes
   const boxes = [
     { label: 'Exchange', value: exchange },
     { label: 'Report Type', value: 'Equity Research' },
@@ -269,7 +180,6 @@ async function generateResearchPDF(
     titlePage.drawText(box.value, { x: bx + 10, y: boxY + 13, font: bold, size: 11, color: C_TEXT })
   })
 
-  // Disclaimer
   const discY = boxY - 85
   titlePage.drawRectangle({ x: MARGIN, y: discY, width: CONTENT_W, height: 68, color: rgb(0.996, 0.953, 0.78) })
   titlePage.drawRectangle({ x: MARGIN, y: discY, width: 3, height: 68, color: rgb(0.961, 0.62, 0.043) })
@@ -281,9 +191,8 @@ async function generateResearchPDF(
     discDrawY -= 11
   }
 
-  // ── Report Pages ─────────────────────────────────────────────────────────────
+  // Report Pages
   newPage()
-
   let tableRowIdx = 0
 
   for (const line of reportText.split('\n')) {
@@ -295,41 +204,38 @@ async function generateResearchPDF(
     }
 
     if (/^# /.test(trimmed)) {
-      // H1 — major section
       ensureY(36)
       curY -= 4
       curPage.drawRectangle({ x: MARGIN, y: curY - 20, width: CONTENT_W, height: 28, color: rgb(0.97, 0.97, 1.0) })
       curPage.drawRectangle({ x: MARGIN, y: curY - 20, width: 4, height: 28, color: C_PRIMARY })
       const h1Text = trimmed.replace(/^# /, '')
-      curPage.drawText(h1Text.length > 80 ? h1Text.slice(0, 78) + '…' : h1Text, {
+      curPage.drawText(h1Text.length > 80 ? h1Text.slice(0, 78) + '..' : h1Text, {
         x: MARGIN + 12, y: curY - 12, font: bold, size: 12, color: C_PRIMARY,
       })
       curY -= 34
       tableRowIdx = 0
 
     } else if (/^## /.test(trimmed)) {
-      // H2
       ensureY(24)
       curY -= 4
       const h2Text = trimmed.replace(/^## /, '')
-      curPage.drawText(h2Text.length > 90 ? h2Text.slice(0, 88) + '…' : h2Text, {
+      curPage.drawText(h2Text.length > 90 ? h2Text.slice(0, 88) + '..' : h2Text, {
         x: MARGIN, y: curY, font: bold, size: 11, color: C_TEXT,
       })
       curY -= 16
       tableRowIdx = 0
 
     } else if (/^#{3,} /.test(trimmed)) {
-      // H3+
       ensureY(18)
       const h3Text = trimmed.replace(/^#+\s/, '')
-      curPage.drawText(h3Text.length > 90 ? h3Text.slice(0, 88) + '…' : h3Text, {
+      curPage.drawText(h3Text.length > 90 ? h3Text.slice(0, 88) + '..' : h3Text, {
         x: MARGIN, y: curY, font: bold, size: 10, color: C_LIGHT,
       })
       curY -= 14
 
     } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       const content = stripInlineMarkdown(trimmed.replace(/^[*-] /, ''))
-      const wrapped = wrapText(`*  ${content}`, regular, 9.5, CONTENT_W - 14)
+      const wrapped = wrapText('*  ' + content, regular, 9.5, CONTENT_W - 14)
       for (const wl of wrapped) {
         ensureY(14)
         curPage.drawText(wl, { x: MARGIN + 10, y: curY, font: regular, size: 9.5, color: C_TEXT })
@@ -337,7 +243,6 @@ async function generateResearchPDF(
       }
 
     } else if (trimmed.startsWith('|')) {
-      // Table row
       const cells = trimmed.split('|').map(c => c.trim()).filter(Boolean)
       if (cells.every(c => /^[-:]+$/.test(c))) {
         tableRowIdx = 0
@@ -353,9 +258,7 @@ async function generateResearchPDF(
       curPage.drawRectangle({ x: MARGIN, y: curY - ROW_H, width: CONTENT_W, height: ROW_H, color: bg })
       cells.forEach((cell, idx) => {
         const cx = MARGIN + idx * cellW + 4
-        const cellText = stripInlineMarkdown(cell)
-        // truncate to fit cell
-        let display = cellText
+        let display = stripInlineMarkdown(cell)
         while (display.length > 1 && bold.widthOfTextAtSize(display, 8.5) > cellW - 8) {
           display = display.slice(0, -2) + '..'
         }
@@ -384,7 +287,6 @@ async function generateResearchPDF(
       curY -= 8
 
     } else {
-      // Regular paragraph
       const cleaned = stripInlineMarkdown(trimmed)
       const wrapped = wrapText(cleaned, regular, 9.5, CONTENT_W)
       for (const wl of wrapped) {
@@ -396,7 +298,7 @@ async function generateResearchPDF(
     }
   }
 
-  // ── Footers on all pages ──────────────────────────────────────────────────────
+  // Footers
   for (let i = 0; i < pages.length; i++) {
     const pg = pages[i]
     pg.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: 30, color: rgb(0.973, 0.98, 0.988) })
@@ -429,7 +331,6 @@ export async function handleResearchTool(
 
   const companyName = (args.company_name as string)?.trim()
   const exchange = (args.exchange as string)?.trim().toUpperCase()
-  // Priority: arg key → stored key (from setup) → platform key
   const argApiKey = (args.user_api_key as string | undefined)?.trim()
   let storedApiKey: string | undefined
   if (!argApiKey && install.access_token_enc) {
@@ -443,12 +344,12 @@ export async function handleResearchTool(
 
   if (!companyName || !exchange) {
     return {
-      content: [{ type: 'text', text: '❌ company_name and exchange are required.' }],
+      content: [{ type: 'text', text: 'company_name and exchange are required.' }],
       isError: true,
     }
   }
 
-  // ── Credit check (skip if user provides own API key) ───────────────────────
+  // Credit check (skip if user provides own API key)
   let currentBalance = 0
   if (!userApiKey) {
     const { data: userRow, error: userErr } = await db
@@ -460,7 +361,7 @@ export async function handleResearchTool(
     if (userErr || !userRow) {
       writeLog('error', 'Failed to fetch user credits')
       return {
-        content: [{ type: 'text', text: '❌ Failed to verify credit balance. Please try again.' }],
+        content: [{ type: 'text', text: 'Failed to verify credit balance. Please try again.' }],
         isError: true,
       }
     }
@@ -471,19 +372,19 @@ export async function handleResearchTool(
       return {
         content: [{
           type: 'text',
-          text: `❌ Insufficient credits.\n\nYour balance: ₹${currentBalance}\nRequired: ₹25 per report\n\nTo top up your credits, please contact support or provide your own Anthropic API key in the user_api_key parameter.`,
+          text: `Insufficient credits.\n\nYour balance: Rs${currentBalance}\nRequired: Rs25 per report\n\nProvide your own Anthropic API key in the user_api_key parameter to bypass credits.`,
         }],
         isError: true,
       }
     }
   }
 
-  // ── Call Claude API ────────────────────────────────────────────────────────
+  // Call Claude API
   const apiKey = userApiKey || process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     writeLog('error', 'No API key configured')
     return {
-      content: [{ type: 'text', text: '❌ Research service is not configured. Please contact support.' }],
+      content: [{ type: 'text', text: 'Research service is not configured. Please contact support.' }],
       isError: true,
     }
   }
@@ -496,29 +397,37 @@ export async function handleResearchTool(
 
   let reportText: string
   try {
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 8096,
+    // Stream the response — keeps the HTTP connection alive during long generation.
+    // Using sonnet (faster throughput, higher quality) at 8000 tokens.
+    let stop_reason: string | null = null
+    const chunks: string[] = []
+    const stream = await anthropic.messages.stream({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     })
-    reportText = message.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('\n')
-    // Append a note if output was cut off at the token limit
-    if (message.stop_reason === 'max_tokens') {
-      reportText += '\n\n---\n\n**Note: Report was truncated due to output length limits. Key sections above are complete. Please request specific sections for more detail.**'
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        chunks.push(event.delta.text)
+      }
+      if (event.type === 'message_delta') {
+        stop_reason = event.delta.stop_reason ?? null
+      }
+    }
+    reportText = chunks.join('')
+    if (stop_reason === 'max_tokens') {
+      reportText += '\n\n---\n\n**Note: Report reached the token limit. Key sections above are complete.**'
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     writeLog('error', `Claude API error: ${msg}`)
     return {
-      content: [{ type: 'text', text: `❌ Failed to generate research: ${msg}` }],
+      content: [{ type: 'text', text: `Failed to generate research: ${msg}` }],
       isError: true,
     }
   }
 
-  // ── Generate PDF ──────────────────────────────────────────────────────────
+  // Generate PDF
   let pdfBuffer: Buffer
   try {
     pdfBuffer = await generateResearchPDF(reportText, companyName, exchange)
@@ -526,20 +435,20 @@ export async function handleResearchTool(
     const msg = err instanceof Error ? err.message : String(err)
     writeLog('error', `PDF generation error: ${msg}`)
     return {
-      content: [{ type: 'text', text: `❌ Failed to generate PDF: ${msg}` }],
+      content: [{ type: 'text', text: `Failed to generate PDF: ${msg}` }],
       isError: true,
     }
   }
 
-  // ── Upload to Supabase Storage ────────────────────────────────────────────
+  // Upload to Supabase Storage
   const serviceClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const dateStr = new Date().toISOString().split('T')[0]
+  const dateTag = new Date().toISOString().split('T')[0]
   const companySlug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)
-  const filename = `${companySlug}-${dateStr}-${Date.now()}.pdf`
+  const filename = `${companySlug}-${dateTag}-${Date.now()}.pdf`
   const storagePath = `${install.user_id}/${filename}`
 
   const { error: uploadErr } = await serviceClient.storage
@@ -549,12 +458,12 @@ export async function handleResearchTool(
   if (uploadErr) {
     writeLog('error', `Storage upload error: ${uploadErr.message}`)
     return {
-      content: [{ type: 'text', text: `❌ Failed to store PDF: ${uploadErr.message}` }],
+      content: [{ type: 'text', text: `Failed to store PDF: ${uploadErr.message}` }],
       isError: true,
     }
   }
 
-  // ── Create signed URL (valid 7 days) ─────────────────────────────────────
+  // Create signed URL (valid 7 days)
   const { data: signedData, error: signErr } = await serviceClient.storage
     .from('research-pdfs')
     .createSignedUrl(storagePath, 7 * 24 * 60 * 60)
@@ -562,12 +471,12 @@ export async function handleResearchTool(
   if (signErr || !signedData?.signedUrl) {
     writeLog('error', 'Failed to create signed URL')
     return {
-      content: [{ type: 'text', text: '❌ Failed to generate download link. Report was saved but link creation failed.' }],
+      content: [{ type: 'text', text: 'Failed to generate download link.' }],
       isError: true,
     }
   }
 
-  // ── Deduct credits (only if using platform API key) ───────────────────────
+  // Deduct credits
   if (!userApiKey) {
     await db
       .from('users')
@@ -585,11 +494,11 @@ export async function handleResearchTool(
     content: [{
       type: 'text',
       text: [
-        `✅ Research report generated for **${companyName}** (${exchange})`,
+        `Research report generated for ${companyName} (${exchange})`,
         ``,
-        `📄 **Download PDF:** ${signedData.signedUrl}`,
-        `🕐 Link expires: ${expiryDate} (7 days)`,
-        !userApiKey ? `💳 Credits remaining: ₹${currentBalance - 25}` : `🔑 Used your own API key (no credits deducted)`,
+        `Download PDF: ${signedData.signedUrl}`,
+        `Link expires: ${expiryDate} (7 days)`,
+        !userApiKey ? `Credits remaining: Rs${currentBalance - 25}` : `Used your own API key (no credits deducted)`,
         ``,
         `---`,
         ``,
