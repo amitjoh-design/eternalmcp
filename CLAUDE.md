@@ -248,7 +248,7 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | `f70f151` | Added `timeout: 60000` to auto-install scripts |
 | `e66d355` | Added `timeout: 60000` to manual ConfigSnippet |
 | `dfc2139` | Fixed ConfigSnippet in InstallModal missing `slug` prop (was defaulting to 'gmail' for all tools) |
-| *(local)* | Increased company research `max_tokens` 1500→3000 (safe now that `timeout: 60000` is set) |
+| `c7cfd17` | Increased company research `max_tokens` 1500→3000 (safe now that `timeout: 60000` is set) |
 
 ---
 
