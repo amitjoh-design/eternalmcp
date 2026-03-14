@@ -114,7 +114,7 @@ export function FileUpload() {
             </button>
           </div>
           <p className="text-xs text-emerald-600 mt-2">
-            Tell Claude: <em>"Send an email and attach this URL: [paste URL]"</em>
+            Tell Claude: <em>&quot;Send an email and attach this URL: [paste URL]&quot;</em>
           </p>
         </div>
       )}
