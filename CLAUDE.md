@@ -94,7 +94,7 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 - **Tool**: `research_company(company_name, exchange, [user_api_key])`
 - **Flow**: Prompt → Haiku API (streaming) → `pdf-lib` PDF → Supabase Storage → signed URL (7 days)
 - **Cost**: Rs.25 credits per report (or user's own Anthropic API key = free)
-- **Model**: `claude-haiku-4-5-20251001` at `max_tokens: 3000`
+- **Model**: `claude-haiku-4-5-20251001` at `max_tokens: 6000`
 - **No OAuth** — direct install
 
 #### Key Technical Decisions (Company Research)
@@ -102,7 +102,7 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 | Decision | Reason |
 |----------|--------|
 | `claude-haiku-4-5-20251001` | Sonnet took ~31s (too slow), Haiku takes ~12-15s |
-| `max_tokens: 3000` | Increased from 1500 once `timeout: 60000` was added to Claude Desktop config — gives richer reports |
+| `max_tokens: 6000` | Increased to 6000 with timeout 300000ms and full institutional research prompt — gives full 9-section equity research reports |
 | Streaming (`messages.stream`) | Keeps Vercel function alive during long generation |
 | `pdf-lib` (not pdfkit) | pdfkit requires filesystem — Vercel serverless has no writable FS |
 | `sanitizeForPdf()` | Helvetica = Latin-1 only; ₹ (U+20B9) and smart quotes crash `drawText` |
@@ -297,6 +297,8 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | `cec5008` | Storage Manager MCP — 5 tools (upload_file, upload_from_url, save_as_file, list_files, delete_file), 24h signed URLs, 10 file / 10 GB / 20 MB limits, `storage_files` DB table |
 | `76940aa` | UI standardization: `InstallModal` now fully dynamic via `getMcpDefinition(slug)` — no longer hardcoded to Company Research; `ConfigSnippet` generates combined `mcpServers` block for all connected MCPs (new `allInstalled[]` prop); `SetupModal` + dashboard wired to pass all connected MCPs to both modals |
 | `fc33041` | Fix Storage Manager install — connect route was at `/api/mcp/connect/storage` but slug is `storage-manager`; renamed folder to `storage-manager` so `handleDirectInstall` hits the correct endpoint |
+| `e3b5f5c` | Increased MCP timeout 60000→300000ms (matches Vercel Pro maxDuration 300s) across ConfigSnippet and install scripts |
+| (latest) | Upgraded company research prompt to full 9-section institutional equity research report (Goldman Sachs / Morgan Stanley style); `max_tokens` 3000→6000 |
 
 ---
 
@@ -358,7 +360,7 @@ const serviceClient = createClient(
 **Critical rules for new tools:**
 - Always use `sanitizeForPdf()` if generating PDFs
 - Use streaming for any Anthropic API calls > 10s
-- Keep `max_tokens` low enough that total pipeline fits in 20s (MCP client timeout = 60s with our config, but be conservative)
+- Keep `max_tokens` within reason — current research tool uses 6000 at Haiku speed (~25-35s), well within 300s timeout
 - Pass `slug` prop to every `<ConfigSnippet>` usage
 
 **UI is fully automatic — no extra code needed for:**

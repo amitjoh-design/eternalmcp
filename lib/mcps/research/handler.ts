@@ -6,33 +6,149 @@ import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'pdf-lib'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // ── Institutional Research Prompt ────────────────────────────────────────────
-const RESEARCH_PROMPT = `Write a short equity research snapshot for COMPANY_NAME (EXCHANGE). Use training knowledge. N/A for unknowns. Be extremely brief.
+const RESEARCH_PROMPT = `Role: Act as a Senior Equity Research Analyst with 20+ years of experience in institutional investing, fundamental analysis, and valuation (similar to analysts at Goldman Sachs, Morgan Stanley, or top hedge funds).
 
-# 1. Summary
-2 sentences: what the company does and BUY/HOLD/SELL with one reason.
+Your task is to produce a professional equity research report on COMPANY_NAME listed on EXCHANGE.
 
-# 2. Business
-- 3 bullet points on core business and revenue segments
+The report should be data-driven, structured, and written in institutional research style suitable for investment committees and professional investors. If reliable financial data is unavailable, clearly state "Data Not Available" rather than estimating.
 
-# 3. Financials
+# 1. Sector Analysis & Macro Environment
 
-| Metric | FY2023 | FY2024 |
-|--------|--------|--------|
-| Revenue (Cr) | | |
-| Net Profit (Cr) | | |
-| ROE % | | |
+## Industry Overview
+- Sector size and growth trends
+- Industry life-cycle stage
+- Global vs domestic market dynamics
 
-# 4. Valuation
-P/E: [value] vs sector [value]. Verdict: Undervalued/Fairly Valued/Overvalued.
+## Macro Drivers
+Key macro factors influencing the sector (interest rates, inflation, commodity prices, regulation, technological disruption, consumer demand trends).
 
-# 5. Risks
-3 risks — one line each.
+## Key Tailwinds
+3-5 major growth drivers.
 
-# 6. Recommendation
-Rating: BUY/HOLD/SELL | Target: N/A | Horizon: Short/Medium/Long
-One sentence summary.
+## Key Headwinds
+3-5 structural risks or challenges.
 
-DISCLAIMER: AI-generated. Not investment advice.`
+## Sector SWOT Analysis
+
+| | Analysis |
+|---|---|
+| Strengths | |
+| Weaknesses | |
+| Opportunities | |
+| Threats | |
+
+# 2. Company Positioning within the Sector
+
+## Market Position
+- Market share
+- Competitive advantages (moat): brand power, cost leadership, network effects, switching costs, patents or technology advantage
+
+## Competitive Benchmarking
+
+| Metric | COMPANY_NAME | Competitor 1 | Competitor 2 | Competitor 3 |
+|--------|-------------|--------------|--------------|--------------|
+| Revenue Growth | | | | |
+| EBITDA Margin | | | | |
+| ROE | | | | |
+| Market Share | | | | |
+
+## Company SWOT Analysis
+
+| | Analysis |
+|---|---|
+| Strengths | |
+| Weaknesses | |
+| Opportunities | |
+| Threats | |
+
+# 3. Recent Developments & Market Sentiment
+
+## Key Developments (Past 6 Months)
+- Earnings announcements
+- Management commentary
+- Strategic initiatives
+- M&A activity
+- Regulatory developments
+- Product launches
+- Institutional investor positioning
+
+## Market Sentiment
+- Analyst upgrades/downgrades
+- Institutional ownership trends
+- Retail sentiment
+- Market narrative around the stock
+
+# 4. Fundamental Analysis
+
+## Revenue & Growth
+- Revenue CAGR
+- Segment contribution
+- Growth sustainability
+
+## Profitability
+
+| Metric | Year 1 | Year 2 | Year 3 | Year 4 | Year 5 |
+|--------|--------|--------|--------|--------|--------|
+| Revenue | | | | | |
+| EBITDA Margin | | | | | |
+| Net Profit | | | | | |
+| Net Margin | | | | | |
+
+## Solvency & Balance Sheet
+- Debt-to-Equity
+- Interest Coverage
+- Current Ratio
+- Free Cash Flow
+- Leverage assessment (healthy or risky)
+
+## Efficiency & Capital Allocation
+- Return on Equity (ROE)
+- Return on Capital Employed (ROCE)
+- Asset Turnover
+- Management capital allocation discipline
+
+# 5. Valuation Analysis
+
+| Valuation Metric | Current | 5Y Historical Avg | Industry Median |
+|-----------------|---------|-------------------|-----------------|
+| P/E | | | |
+| P/B | | | |
+| EV/EBITDA | | | |
+
+Valuation verdict: Undervalued / Fairly Valued / Overvalued — with reasoning on growth expectations, risk premium, and sector multiples.
+
+# 6. Investment Thesis
+
+3-5 key reasons an investor should own this stock.
+
+- Thesis 1:
+- Thesis 2:
+- Thesis 3:
+
+# 7. Key Catalysts
+
+Potential events that could move the stock price:
+- Earnings surprises
+- Regulatory changes
+- Product launches
+- Industry cycle shifts
+- Macro changes
+
+# 8. Key Risks
+
+Top 3-5 risks that could invalidate the investment thesis, each explained clearly.
+
+# 9. Final Investment Recommendation
+
+Rating: BUY / HOLD / SELL
+Confidence Index: [1-10] (10 = extremely high confidence)
+Investment Horizon: Short-term / Medium-term / Long-term
+
+Summary Conclusion: Concise final investment view.
+
+---
+
+DISCLAIMER: This report is AI-generated and for informational purposes only. It does not constitute investment advice. Always consult a qualified financial advisor before making investment decisions.`
 
 // ── Strip inline markdown ──────────────────────────────────────────────────────
 function stripInlineMarkdown(text: string): string {
@@ -387,7 +503,7 @@ export async function handleResearchTool(
     const chunks: string[] = []
     const stream = await anthropic.messages.stream({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 3000,
+      max_tokens: 6000,
       messages: [{ role: 'user', content: prompt }],
     })
     for await (const event of stream) {
