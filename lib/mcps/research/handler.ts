@@ -78,36 +78,7 @@ Key macro factors influencing the sector (interest rates, inflation, commodity p
 - Retail sentiment
 - Market narrative around the stock
 
-# 4. Fundamental Analysis
-
-## Revenue & Growth
-- Revenue CAGR
-- Segment contribution
-- Growth sustainability
-
-## Profitability
-
-| Metric | Year 1 | Year 2 | Year 3 | Year 4 | Year 5 |
-|--------|--------|--------|--------|--------|--------|
-| Revenue | | | | | |
-| EBITDA Margin | | | | | |
-| Net Profit | | | | | |
-| Net Margin | | | | | |
-
-## Solvency & Balance Sheet
-- Debt-to-Equity
-- Interest Coverage
-- Current Ratio
-- Free Cash Flow
-- Leverage assessment (healthy or risky)
-
-## Efficiency & Capital Allocation
-- Return on Equity (ROE)
-- Return on Capital Employed (ROCE)
-- Asset Turnover
-- Management capital allocation discipline
-
-# 5. Valuation Analysis
+# 4. Valuation Analysis
 
 | Valuation Metric | Current | 5Y Historical Avg | Industry Median |
 |-----------------|---------|-------------------|-----------------|
@@ -117,7 +88,7 @@ Key macro factors influencing the sector (interest rates, inflation, commodity p
 
 Valuation verdict: Undervalued / Fairly Valued / Overvalued — with reasoning on growth expectations, risk premium, and sector multiples.
 
-# 6. Key Catalysts
+# 5. Key Catalysts
 
 Potential events that could move the stock price:
 - Earnings surprises
@@ -126,11 +97,11 @@ Potential events that could move the stock price:
 - Industry cycle shifts
 - Macro changes
 
-# 7. Key Risks
+# 6. Key Risks
 
 Top 3-5 risks that could invalidate the investment thesis, each explained clearly.
 
-# 8. Final Investment Recommendation
+# 7. Final Investment Recommendation
 
 Rating: BUY / HOLD / SELL
 Confidence Index: [1-10] (10 = extremely high confidence)
