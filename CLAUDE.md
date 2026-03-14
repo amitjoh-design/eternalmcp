@@ -342,9 +342,8 @@ const serviceClient = createClient(
 7. Add dispatch case in `app/api/mcp/[token]/route.ts`
 
 **Critical rules for new tools:**
-- Always use `sanitizeForPdf()` if generating PDFs
 - Use streaming for any Anthropic API calls > 10s
-- Keep `max_tokens` within reason — current research tool uses 6000 at Haiku speed (~25-35s), well within 300s timeout
+- Keep `max_tokens` within reason — current research tool uses 5000 at Haiku speed (~15-25s), well within 300s timeout
 - Pass `slug` prop to every `<ConfigSnippet>` usage
 
 **UI is fully automatic — no extra code needed for:**
@@ -413,8 +412,9 @@ Priority order for non-technical Indian users:
 research-pdfs/
   uploads/{user_id}/           ← Dashboard FileUpload widget (7-day URLs)
   storage/{user_id}/           ← Storage Manager MCP (24-hour URLs)
-  {user_id}/                   ← Company Research PDFs (7-day URLs)
 ```
+
+Note: Company Research no longer uploads PDFs — it returns plain markdown text directly.
 
 ### Quota enforcement
 
