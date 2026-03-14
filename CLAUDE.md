@@ -94,7 +94,7 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 - **Tool**: `research_company(company_name, exchange, [user_api_key])`
 - **Flow**: Prompt → Haiku API (streaming) → `pdf-lib` PDF → Supabase Storage → signed URL (7 days)
 - **Cost**: Rs.25 credits per report (or user's own Anthropic API key = free)
-- **Model**: `claude-haiku-4-5-20251001` at `max_tokens: 6000`
+- **Model**: `claude-haiku-4-5-20251001` at `max_tokens: 5000`
 - **No OAuth** — direct install
 
 #### Key Technical Decisions (Company Research)
@@ -102,7 +102,7 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 | Decision | Reason |
 |----------|--------|
 | `claude-haiku-4-5-20251001` | Sonnet took ~31s (too slow), Haiku takes ~12-15s |
-| `max_tokens: 6000` | Increased to 6000 with timeout 300000ms and full institutional research prompt — gives full 9-section equity research reports |
+| `max_tokens: 5000` | Reduced from 6000 to prevent timeouts — 8-section report (Investment Thesis section removed) |
 | Streaming (`messages.stream`) | Keeps Vercel function alive during long generation |
 | `pdf-lib` (not pdfkit) | pdfkit requires filesystem — Vercel serverless has no writable FS |
 | `sanitizeForPdf()` | Helvetica = Latin-1 only; ₹ (U+20B9) and smart quotes crash `drawText` |
@@ -298,7 +298,8 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | `76940aa` | UI standardization: `InstallModal` now fully dynamic via `getMcpDefinition(slug)` — no longer hardcoded to Company Research; `ConfigSnippet` generates combined `mcpServers` block for all connected MCPs (new `allInstalled[]` prop); `SetupModal` + dashboard wired to pass all connected MCPs to both modals |
 | `fc33041` | Fix Storage Manager install — connect route was at `/api/mcp/connect/storage` but slug is `storage-manager`; renamed folder to `storage-manager` so `handleDirectInstall` hits the correct endpoint |
 | `e3b5f5c` | Increased MCP timeout 60000→300000ms (matches Vercel Pro maxDuration 300s) across ConfigSnippet and install scripts |
-| (latest) | Upgraded company research prompt to full 9-section institutional equity research report (Goldman Sachs / Morgan Stanley style); `max_tokens` 3000→6000 |
+| `6e28855` | Upgraded company research prompt to full 9-section institutional equity research report (Goldman Sachs / Morgan Stanley style); `max_tokens` 3000→6000 |
+| `59d51a5` | Reduced `max_tokens` 6000→5000 to fix timeout failures; removed Investment Thesis section (was section 6); renumbered remaining sections to 8 total |
 
 ---
 
