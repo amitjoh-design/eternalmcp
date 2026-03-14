@@ -189,7 +189,7 @@ app/
         company-research/route.ts
         gmail/route.ts
         gmail/callback/route.ts
-        storage/route.ts
+        storage-manager/route.ts
       install/[token]/route.ts  ← Generates Mac .sh / Windows .bat scripts
       disconnect/route.ts
       settings/route.ts      ← Save Anthropic API key for research tool
@@ -349,7 +349,7 @@ const serviceClient = createClient(
 1. Create `lib/mcps/[slug]/definition.ts` — tool schema, metadata, OAuth requirements
 2. Create `lib/mcps/[slug]/handler.ts` — implements `handleXxxTool(install, toolName, args, writeLog, db)`
 3. Register in `lib/mcps/registry.ts` — add to `MCP_REGISTRY` array
-4. Add connect route at `app/api/mcp/connect/[slug]/route.ts`
+4. Add connect route at `app/api/mcp/connect/[slug]/route.ts` — **folder name MUST exactly match the slug** (e.g. slug `storage-manager` → folder `connect/storage-manager/`)
 5. Add entry to `MCP_META` in `app/api/mcp/install/[token]/route.ts`
 6. Add entry to `MCP_CONTENT` in `components/mcp/SetupModal.tsx`
 7. Add dispatch case in `app/api/mcp/[token]/route.ts`
@@ -364,6 +364,43 @@ const serviceClient = createClient(
 - `InstallModal` (Manage button): fully dynamic via `getMcpDefinition(slug)` — reads icon, name, and permissions from the definition file automatically
 - `ConfigSnippet` combined config: already generates a single `mcpServers` block with ALL connected MCPs; dashboard passes `allInstalledMcps` to `InstallModal` and `allInstalled` to `SetupModal`
 - You only need steps 1–7 above; the UI components handle themselves
+
+---
+
+## MCP UI Components — How They Work
+
+### InstallModal (`components/mcp/InstallModal.tsx`)
+
+Triggered by the **Manage** button on a connected MCP card. Fully dynamic — reads all display data from the MCP definition file via `getMcpDefinition(slug)`. No hardcoded content per MCP.
+
+- Shows MCP icon, name, "Verified" badge from `definition.ts`
+- Lists permissions (`canDo` / `cannotDo`) from definition
+- Passes `allInstalled` (all connected MCPs) to `<ConfigSnippet>` so the config block includes every MCP
+
+### ConfigSnippet (`components/mcp/ConfigSnippet.tsx`)
+
+Shows the JSON config the user pastes into their AI client config file.
+
+- Accepts `allInstalled?: Array<{ token: string; slug: string }>`
+- When multiple MCPs are connected: shows **"All N MCPs included"** badge with slug pills, generates a single `mcpServers` block containing every connected MCP
+- When single MCP: generates config for that MCP only
+- Instruction text changes to "Replace the entire mcpServers block" when multi-MCP
+- Supports tabs: Claude Desktop / Cursor / Windsurf / Continue.dev
+
+### SetupModal (`components/mcp/SetupModal.tsx`)
+
+Triggered by the **Setup Guide** button. Contains step-by-step instructions, auto-install script download buttons, and a `<ConfigSnippet>` for manual setup.
+
+- `MCP_CONTENT` map in the file defines per-MCP steps and example prompts — add a new entry here for each new MCP
+- Receives `allInstalled` from dashboard and passes it through to `<ConfigSnippet>`
+
+### Dashboard prop wiring (`app/dashboard/page.tsx`)
+
+```tsx
+// Both modals receive the full installed MCPs list for combined config
+<InstallModal allInstalledMcps={installedMcps} ... />
+<SetupModal allInstalled={installedMcps.filter(m => m.status==='connected').map(m => ({token: m.mcp_token, slug: m.mcp_slug}))} ... />
+```
 
 ---
 
