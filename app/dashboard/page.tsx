@@ -12,6 +12,7 @@ import { Analytics } from '@/components/dashboard/Analytics'
 import { McpCard } from '@/components/mcp/McpCard'
 import { InstallModal } from '@/components/mcp/InstallModal'
 import { SetupModal } from '@/components/mcp/SetupModal'
+import { FileUpload } from '@/components/mcp/FileUpload'
 import { MCP_REGISTRY } from '@/lib/mcps/registry'
 import { MCPTool, User } from '@/lib/types'
 import { formatDate, formatNumber, getCategoryMeta } from '@/lib/utils'
@@ -344,6 +345,8 @@ function DashboardContent() {
                     )
                   })}
                 </div>
+
+                <FileUpload />
 
                 <div className="text-center py-6 text-xs text-muted border border-dashed border-border-subtle rounded-xl">
                   More MCPs coming soon — email, calendar, Slack, Notion &amp; more

@@ -39,7 +39,7 @@ export const GMAIL_MCP_DEFINITION = {
           body: { type: 'string', description: 'Email body — plain text or HTML' },
           cc: { type: 'string', description: 'CC email address (optional)' },
           bcc: { type: 'string', description: 'BCC email address (optional)' },
-          attachment_url: { type: 'string', description: 'Public URL of a file to attach (e.g. PDF download link from research_company). The file will be fetched and attached automatically.' },
+          attachment_url: { type: 'string', description: 'MUST be a publicly accessible URL (https://...) — local file paths are NOT supported because the server fetches this URL remotely. To attach a local file, the user must first upload it to Google Drive, Dropbox, or any public storage and share the direct download link. Example: a PDF signed URL returned by research_company.' },
           attachment_filename: { type: 'string', description: 'Filename for the attachment (e.g. "reliance-research.pdf"). If omitted, derived from the URL.' },
         },
         required: ['to', 'subject', 'body'],
