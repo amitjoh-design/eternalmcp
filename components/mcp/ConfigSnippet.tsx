@@ -24,8 +24,9 @@ function buildConfig(client: ClientTab, token: string, appUrl: string, slug: str
   switch (client) {
     case 'claude':
       // npx mcp-remote works with all Claude Desktop versions (requires Node.js)
+      // timeout: 60000ms gives tools like company-research enough time to complete
       return JSON.stringify(
-        { mcpServers: { [slug]: { command: 'npx', args: ['-y', 'mcp-remote', url] } } },
+        { mcpServers: { [slug]: { command: 'npx', args: ['-y', 'mcp-remote', url], timeout: 60000 } } },
         null,
         2
       )
@@ -120,6 +121,7 @@ export function ConfigSnippet({ token, appUrl = 'https://www.eternalmcp.com', sl
           <p>🪟 Windows (standard): <span className="text-text-secondary font-mono">%APPDATA%\Claude\</span></p>
           <p>🪟 Windows (Store): <span className="text-text-secondary font-mono">%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude\</span></p>
           <p className="text-[10px]">💡 Find it in Claude Desktop: ☰ → Settings → Developer → Edit Config</p>
+          <p className="text-[10px] text-yellow-400/80">⏱ <code>timeout: 60000</code> gives tools like Company Research enough time to generate reports without timing out.</p>
         </div>
       ) : (
         <p className="text-xs text-muted">
