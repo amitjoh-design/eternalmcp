@@ -6,49 +6,33 @@ import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'pdf-lib'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // ── Institutional Research Prompt ────────────────────────────────────────────
-const RESEARCH_PROMPT = `You are a Senior Equity Research Analyst. Write a brief institutional research report for COMPANY_NAME listed on EXCHANGE.
+const RESEARCH_PROMPT = `Write a short equity research snapshot for COMPANY_NAME (EXCHANGE). Use training knowledge. N/A for unknowns. Be extremely brief.
 
-Use your training knowledge. Write "N/A" for unknown data. Be very concise — max 2 sentences per point.
-IMPORTANT: Complete ALL 6 sections. No filler text.
+# 1. Summary
+2 sentences: what the company does and BUY/HOLD/SELL with one reason.
 
-# 1. Executive Summary
-2-3 sentences: company overview and investment view (BUY/HOLD/SELL with one key reason).
+# 2. Business
+- 3 bullet points on core business and revenue segments
 
-# 2. Business Overview
-- Core business and main revenue segments (3 bullets max)
-- Key competitive advantage in one sentence
-
-# 3. Financial Snapshot
+# 3. Financials
 
 | Metric | FY2023 | FY2024 |
 |--------|--------|--------|
 | Revenue (Cr) | | |
-| EBITDA Margin % | | |
 | Net Profit (Cr) | | |
 | ROE % | | |
 
-One sentence on financial trend.
-
 # 4. Valuation
+P/E: [value] vs sector [value]. Verdict: Undervalued/Fairly Valued/Overvalued.
 
-| Multiple | Current | Sector Median |
-|----------|---------|---------------|
-| P/E | | |
-| EV/EBITDA | | |
-
-Undervalued / Fairly Valued / Overvalued — one sentence reason.
-
-# 5. Key Risks
-Top 3 risks — one sentence each.
+# 5. Risks
+3 risks — one line each.
 
 # 6. Recommendation
-Rating: BUY / HOLD / SELL
-Target Price: (if estimable, else N/A)
-Time Horizon: Short / Medium / Long
-Summary: 2 sentences for an investment committee.
+Rating: BUY/HOLD/SELL | Target: N/A | Horizon: Short/Medium/Long
+One sentence summary.
 
----
-DISCLAIMER: AI-generated report for informational purposes only. Not investment advice.`
+DISCLAIMER: AI-generated. Not investment advice.`
 
 // ── Strip inline markdown ──────────────────────────────────────────────────────
 function stripInlineMarkdown(text: string): string {
@@ -403,7 +387,7 @@ export async function handleResearchTool(
     const chunks: string[] = []
     const stream = await anthropic.messages.stream({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 3000,
+      max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }],
     })
     for await (const event of stream) {
