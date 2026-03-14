@@ -387,7 +387,7 @@ export async function handleResearchTool(
     const chunks: string[] = []
     const stream = await anthropic.messages.stream({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
+      max_tokens: 3000,
       messages: [{ role: 'user', content: prompt }],
     })
     for await (const event of stream) {
