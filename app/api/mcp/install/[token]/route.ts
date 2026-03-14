@@ -25,6 +25,11 @@ const MCP_META: Record<string, McpMeta> = {
     displayName: 'Storage Manager MCP',
     testPrompt: "Use tool list_files to show my stored files",
   },
+  'pdf-creator': {
+    serverKey: 'pdf-creator',
+    displayName: 'PDF Creator MCP',
+    testPrompt: "Use tool create_pdf to convert this text to a PDF: Hello World",
+  },
 }
 
 function macScript(mcpUrl: string, meta: McpMeta): string {

@@ -59,6 +59,18 @@ const MCP_CONTENT: Record<string, {
       'Use tool list_files to show all my stored files',
     ],
   },
+  'pdf-creator': {
+    step4: 'Ask Claude to convert any text or markdown to PDF — say "create a PDF of this" after any response',
+    tools: ['create_pdf'],
+    testPrompt: () => 'Use tool create_pdf to convert this to a PDF with filename "hello": # Hello World\n\nThis is my first PDF.',
+    scriptBaseName: 'pdf-creator-mcp',
+    prompts: [
+      'Use tool create_pdf to save the above research report as a PDF with filename "reliance-research"',
+      'Create a PDF of this meeting notes with filename "meeting-2024-03"',
+      'Use tool create_pdf to convert this HTML page content into a PDF',
+      'Save this markdown document as a PDF called "project-proposal"',
+    ],
+  },
 }
 
 export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://www.eternalmcp.com', slug = 'gmail', allInstalled, onClose }: SetupModalProps) {

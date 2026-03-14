@@ -9,6 +9,7 @@ import { decryptToken, encryptToken } from '@/lib/mcp-crypto'
 import { sendEmail, createDraft, refreshGmailToken } from '@/lib/mcps/gmail/handler'
 import { handleResearchTool } from '@/lib/mcps/research/handler'
 import { handleStorageTool } from '@/lib/mcps/storage/handler'
+import { handlePdfCreatorTool } from '@/lib/mcps/pdf/handler'
 import { getMcpDefinition } from '@/lib/mcps/registry'
 
 // Vercel: allow up to 5 minutes for research report generation
@@ -241,6 +242,21 @@ export async function POST(
         writeLog('error', msg)
         return mcpOk(id, {
           content: [{ type: 'text', text: `Storage error: ${msg}` }],
+          isError: true,
+        })
+      }
+    }
+
+    // ── PDF Creator handler ───────────────────────────────────
+    if (mcpSlug === 'pdf-creator') {
+      try {
+        const result = await handlePdfCreatorTool(install, toolName ?? '', args, writeLog)
+        return mcpOk(id, result)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        writeLog('error', msg)
+        return mcpOk(id, {
+          content: [{ type: 'text', text: `❌ PDF Creator error: ${msg}` }],
           isError: true,
         })
       }
