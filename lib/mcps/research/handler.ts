@@ -6,64 +6,46 @@ import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'pdf-lib'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // ── Institutional Research Prompt ────────────────────────────────────────────
-const RESEARCH_PROMPT = `You are a Senior Equity Research Analyst. Write a concise institutional research report for COMPANY_NAME listed on EXCHANGE.
+const RESEARCH_PROMPT = `You are a Senior Equity Research Analyst. Write a brief institutional research report for COMPANY_NAME listed on EXCHANGE.
 
-Use your training knowledge. Write "N/A" for unknown data.
-IMPORTANT: Complete ALL 9 sections. Be concise — 2-3 sentences per paragraph, no filler text.
+Use your training knowledge. Write "N/A" for unknown data. Be very concise — max 2 sentences per point.
+IMPORTANT: Complete ALL 6 sections. No filler text.
 
 # 1. Executive Summary
-3-4 sentences: company overview, market position, and investment view (BUY/HOLD/SELL with primary reason).
+2-3 sentences: company overview and investment view (BUY/HOLD/SELL with one key reason).
 
 # 2. Business Overview
-- Core business and revenue segments (3-5 bullets)
-- Key competitive advantages / moat
-- Recent strategic developments (last 12 months: earnings, orders, M&A, launches)
+- Core business and main revenue segments (3 bullets max)
+- Key competitive advantage in one sentence
 
-# 3. Sector & Macro Analysis
-- Industry size and growth trend
-- Key macro drivers (interest rates, regulation, commodity prices, demand)
-- 3 tailwinds and 3 headwinds for the sector
+# 3. Financial Snapshot
 
-# 4. Financial Snapshot
+| Metric | FY2023 | FY2024 |
+|--------|--------|--------|
+| Revenue (Cr) | | |
+| EBITDA Margin % | | |
+| Net Profit (Cr) | | |
+| ROE % | | |
 
-| Metric | FY2022 | FY2023 | FY2024 |
-|--------|--------|--------|--------|
-| Revenue (Cr) | | | |
-| Revenue Growth % | | | |
-| EBITDA Margin % | | | |
-| Net Profit (Cr) | | | |
-| EPS (Rs) | | | |
-| ROE % | | | |
-| Debt/Equity | | | |
+One sentence on financial trend.
 
-Financial trend: 3-4 sentences on revenue trajectory, margin trends, and balance sheet strength.
+# 4. Valuation
 
-# 5. Valuation Analysis
+| Multiple | Current | Sector Median |
+|----------|---------|---------------|
+| P/E | | |
+| EV/EBITDA | | |
 
-| Multiple | Current | 5Y Avg | Sector Median |
-|----------|---------|--------|---------------|
-| P/E | | | |
-| P/B | | | |
-| EV/EBITDA | | | |
+Undervalued / Fairly Valued / Overvalued — one sentence reason.
 
-Valuation verdict (Undervalued/Fairly Valued/Overvalued) with 2-3 sentences of reasoning.
+# 5. Key Risks
+Top 3 risks — one sentence each.
 
-# 6. Competitive Benchmarking
-Compare COMPANY_NAME vs 2-3 key competitors on: market share, margins, growth rate, competitive moat.
-
-# 7. Investment Thesis
-3 key reasons to own this stock — each as a paragraph with specifics.
-
-# 8. Key Risks
-Top 4 risks that could invalidate the thesis — each explained in 2-3 sentences.
-
-# 9. Investment Recommendation
-
-**Rating:** BUY / HOLD / SELL
-**Target Price:** (if estimable, else N/A)
-**Time Horizon:** Short (< 1 yr) / Medium (1-3 yr) / Long (3+ yr)
-**Conviction Level:** High / Medium / Low
-**Investment Summary:** 3-4 sentence conclusion for an investment committee.
+# 6. Recommendation
+Rating: BUY / HOLD / SELL
+Target Price: (if estimable, else N/A)
+Time Horizon: Short / Medium / Long
+Summary: 2 sentences for an investment committee.
 
 ---
 DISCLAIMER: AI-generated report for informational purposes only. Not investment advice.`
@@ -421,7 +403,7 @@ export async function handleResearchTool(
     const chunks: string[] = []
     const stream = await anthropic.messages.stream({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 7000,
+      max_tokens: 3000,
       messages: [{ role: 'user', content: prompt }],
     })
     for await (const event of stream) {
