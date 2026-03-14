@@ -77,7 +77,7 @@ export function InstallModal({ onClose, userId, slug, installed, onConnected }: 
                       <p className="text-xs text-muted">Ready to generate equity research reports</p>
                     </div>
                   </div>
-                  <ConfigSnippet token={installed.mcp_token} appUrl={appUrl} />
+                  <ConfigSnippet token={installed.mcp_token} appUrl={appUrl} slug={slug} />
                   <div className="text-xs text-muted space-y-1 pt-2 border-t border-border-subtle">
                     <p>Total calls: <span className="text-text-secondary">{installed.call_count}</span></p>
                     {installed.last_called_at && (
@@ -199,7 +199,7 @@ export function InstallModal({ onClose, userId, slug, installed, onConnected }: 
                   </div>
                 </div>
 
-                <ConfigSnippet token={installed.mcp_token} appUrl={appUrl} />
+                <ConfigSnippet token={installed.mcp_token} appUrl={appUrl} slug={slug} />
 
                 <div className="text-xs text-muted space-y-1 pt-2 border-t border-border-subtle">
                   <p>Total calls: <span className="text-text-secondary">{installed.call_count}</span></p>
