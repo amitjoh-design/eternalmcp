@@ -416,11 +416,11 @@ export async function handleResearchTool(
   let reportText: string
   try {
     // Stream the response — keeps the HTTP connection alive during long generation.
-    // Using sonnet (faster throughput, higher quality) at 8000 tokens.
+    // Using haiku (fastest model) at 7000 tokens to stay within Vercel timeout.
     let stop_reason: string | null = null
     const chunks: string[] = []
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 7000,
       messages: [{ role: 'user', content: prompt }],
     })
