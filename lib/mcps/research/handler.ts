@@ -77,12 +77,30 @@ function stripInlineMarkdown(text: string): string {
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
 }
 
+// ── Sanitize text for pdf-lib (Helvetica = Latin-1 only) ──────────────────────
+function sanitizeForPdf(text: string): string {
+  return text
+    .replace(/₹|\u20B9/g, 'Rs.')
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    .replace(/–/g, '-')
+    .replace(/—/g, '--')
+    .replace(/…/g, '...')
+    .replace(/×/g, 'x')
+    .replace(/[^\x00-\xFF]/g, '?')
+}
+
 // ── PDF Generation using pdf-lib (no file system access required) ─────────────
 async function generateResearchPDF(
   reportText: string,
   companyName: string,
   exchange: string
 ): Promise<Buffer> {
+  // Sanitize all input text — Helvetica only supports Latin-1 (WinAnsiEncoding)
+  reportText  = sanitizeForPdf(reportText)
+  companyName = sanitizeForPdf(companyName)
+  exchange    = sanitizeForPdf(exchange)
+
   const pdfDoc = await PDFDocument.create()
 
   const regular = await pdfDoc.embedFont(StandardFonts.Helvetica)
@@ -234,7 +252,7 @@ async function generateResearchPDF(
       curY -= 14
 
     } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-      const content = stripInlineMarkdown(trimmed.replace(/^[*-] /, ''))
+      const content = sanitizeForPdf(stripInlineMarkdown(trimmed.replace(/^[*-] /, '')))
       const wrapped = wrapText('*  ' + content, regular, 9.5, CONTENT_W - 14)
       for (const wl of wrapped) {
         ensureY(14)
@@ -258,7 +276,7 @@ async function generateResearchPDF(
       curPage.drawRectangle({ x: MARGIN, y: curY - ROW_H, width: CONTENT_W, height: ROW_H, color: bg })
       cells.forEach((cell, idx) => {
         const cx = MARGIN + idx * cellW + 4
-        let display = stripInlineMarkdown(cell)
+        let display = sanitizeForPdf(stripInlineMarkdown(cell))
         while (display.length > 1 && bold.widthOfTextAtSize(display, 8.5) > cellW - 8) {
           display = display.slice(0, -2) + '..'
         }
@@ -287,7 +305,7 @@ async function generateResearchPDF(
       curY -= 8
 
     } else {
-      const cleaned = stripInlineMarkdown(trimmed)
+      const cleaned = sanitizeForPdf(stripInlineMarkdown(trimmed))
       const wrapped = wrapText(cleaned, regular, 9.5, CONTENT_W)
       for (const wl of wrapped) {
         ensureY(14)

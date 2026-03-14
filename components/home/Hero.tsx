@@ -3,13 +3,13 @@
 import { useRef } from 'react'
 import Link from 'next/link'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { ArrowRight, Zap, Terminal, Globe, Shield, TrendingUp } from 'lucide-react'
+import { ArrowRight, Zap, Terminal, Mail, BarChart3, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
 const FLOATING_CARDS = [
   {
-    icon: TrendingUp,
-    title: 'Trading Bot MCP',
+    icon: BarChart3,
+    title: 'Company Research',
     tag: 'Finance',
     rating: '4.9',
     color: 'from-emerald-500/20 to-emerald-600/10',
@@ -18,9 +18,9 @@ const FLOATING_CARDS = [
     position: 'top-20 -left-4 lg:left-8',
   },
   {
-    icon: Terminal,
-    title: 'Code Analyzer MCP',
-    tag: 'Dev Tools',
+    icon: Mail,
+    title: 'Gmail Sender',
+    tag: 'Productivity',
     rating: '4.8',
     color: 'from-primary/20 to-violet-glow/10',
     border: 'border-primary/20',
@@ -28,31 +28,31 @@ const FLOATING_CARDS = [
     position: 'bottom-32 -left-4 lg:left-16',
   },
   {
-    icon: Globe,
-    title: 'Web Scraper MCP',
-    tag: 'Data',
-    rating: '4.7',
+    icon: TrendingUp,
+    title: 'Trading Intelligence',
+    tag: 'Quant Finance',
+    rating: '4.9',
     color: 'from-cyan-500/20 to-accent/10',
     border: 'border-cyan-500/20',
     delay: 0.1,
     position: 'top-16 -right-4 lg:right-8',
   },
   {
-    icon: Shield,
-    title: 'Security Audit MCP',
-    tag: 'Security',
-    rating: '4.9',
-    color: 'from-red-500/20 to-orange-500/10',
-    border: 'border-red-500/20',
+    icon: Terminal,
+    title: 'EdTech Tutor',
+    tag: 'Education',
+    rating: '4.7',
+    color: 'from-orange-500/20 to-yellow-500/10',
+    border: 'border-orange-500/20',
     delay: 0.4,
     position: 'bottom-24 -right-4 lg:right-12',
   },
 ]
 
 const STATS = [
-  { value: '500+', label: 'MCP Tools' },
-  { value: '10K+', label: 'Developers' },
-  { value: '1M+', label: 'API Calls/Day' },
+  { value: '100%', label: 'Claude-Powered' },
+  { value: '1.4B', label: 'India Addressable' },
+  { value: '₹0', label: 'Code Required' },
   { value: '99.9%', label: 'Uptime' },
 ]
 
@@ -94,12 +94,15 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="mb-8"
+            className="mb-8 flex flex-col sm:flex-row items-center gap-3"
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-sm text-primary-light">
               <Zap size={14} className="animate-pulse" />
-              <span>The Future of AI Tool Infrastructure</span>
+              <span>India&apos;s #1 Claude-Dedicated MCP Platform</span>
               <ArrowRight size={14} />
+            </div>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-full text-xs text-orange-300">
+              🇮🇳 Built for Bharat
             </div>
           </motion.div>
 
@@ -124,7 +127,7 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.35 }}
             className="text-xl sm:text-2xl text-text-secondary max-w-2xl mb-4 font-light"
           >
-            The Infrastructure Layer for AI Tools
+            Bringing Constitutional AI to 1.4 Billion People
           </motion.p>
 
           <motion.p
@@ -133,7 +136,7 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.45 }}
             className="text-base text-muted max-w-xl mb-12"
           >
-            Discover, publish, and integrate Model Context Protocol tools. Built for developers who are shaping the future of AI automation.
+            India&apos;s only Claude-dedicated MCP marketplace. Zero code, zero setup — access institutional-grade AI tools built on Anthropic&apos;s Constitutional AI for individuals, SMEs, and enterprises.
           </motion.p>
 
           {/* CTA Buttons */}
@@ -148,9 +151,9 @@ export function Hero() {
                 Explore MCP Tools
               </Button>
             </Link>
-            <Link href="/dashboard">
+            <Link href="/auth?mode=signup">
               <Button variant="outline" size="xl" icon={<Terminal size={20} />}>
-                Publish Your MCP
+                Get Started Free
               </Button>
             </Link>
           </motion.div>

@@ -10,93 +10,99 @@ import { Badge } from '@/components/ui/Badge'
 const FEATURED_TOOLS = [
   {
     id: '1',
-    name: 'Alpha Trading Bot',
-    description: 'Autonomous trading agent with real-time market analysis, order execution, and portfolio management via MCP.',
-    category: 'Trading',
-    icon: TrendingUp,
+    name: 'Company Research',
+    description: 'Generate institutional-grade equity research reports for any listed company — PDF output with 9-section analysis, valuation, and risk assessment.',
+    category: 'Finance',
+    icon: BarChart3,
     color: 'from-emerald-500 to-emerald-700',
     borderColor: 'border-emerald-500/20',
     rating: 4.9,
-    reviews: 234,
-    usage: '89K',
-    tags: ['Finance', 'Trading', 'Automation'],
-    creator: 'QuantLabs',
+    reviews: 12,
+    usage: 'Live',
+    tags: ['Finance', 'Research', 'PDF'],
+    creator: 'EternalMCP',
     featured: true,
+    live: true,
   },
   {
     id: '2',
-    name: 'DataScraper Pro',
-    description: 'Extract structured data from any website. Handles JS-rendered pages, pagination, and anti-bot measures.',
-    category: 'Data',
+    name: 'Gmail Sender',
+    description: 'Send emails directly from Claude. Draft, compose, and dispatch emails via your connected Gmail — with full OAuth security.',
+    category: 'Productivity',
     icon: Globe,
-    color: 'from-cyan-500 to-blue-600',
-    borderColor: 'border-cyan-500/20',
+    color: 'from-primary to-violet-glow',
+    borderColor: 'border-primary/20',
     rating: 4.8,
-    reviews: 189,
-    usage: '124K',
-    tags: ['Scraping', 'Data', 'Web'],
-    creator: 'DataForge',
+    reviews: 8,
+    usage: 'Live',
+    tags: ['Email', 'Gmail', 'Productivity'],
+    creator: 'EternalMCP',
     featured: true,
+    live: true,
   },
   {
     id: '3',
-    name: 'CodeReview AI',
-    description: 'Automated code review with security vulnerability detection, performance suggestions, and best practices.',
-    category: 'Dev Tools',
-    icon: Terminal,
-    color: 'from-violet-500 to-purple-700',
-    borderColor: 'border-violet-500/20',
+    name: 'Trading Intelligence',
+    description: 'Quant-grade market intelligence for NIFTY 50 and Indian equities — powered by institutional models from EternalQuants.',
+    category: 'Quant Finance',
+    icon: TrendingUp,
+    color: 'from-cyan-500 to-blue-600',
+    borderColor: 'border-cyan-500/20',
     rating: 4.9,
-    reviews: 312,
-    usage: '201K',
-    tags: ['Code', 'Security', 'Review'],
-    creator: 'DevOps.ai',
+    reviews: 0,
+    usage: 'Coming Soon',
+    tags: ['Quant', 'NIFTY 50', 'India'],
+    creator: 'DeltaFlow × EternalMCP',
     featured: false,
+    live: false,
   },
   {
     id: '4',
-    name: 'Market Analytics',
-    description: 'Real-time market sentiment analysis using news feeds, social data, and on-chain metrics for traders.',
-    category: 'Analytics',
-    icon: BarChart3,
-    color: 'from-orange-500 to-red-600',
+    name: 'EdTech Tutor',
+    description: 'Constitutional AI-powered tutor for school and college students. Structured curriculum on Claude, AI safety, and responsible technology.',
+    category: 'Education',
+    icon: Terminal,
+    color: 'from-orange-500 to-amber-600',
     borderColor: 'border-orange-500/20',
-    rating: 4.7,
-    reviews: 156,
-    usage: '67K',
-    tags: ['Analytics', 'Trading', 'Sentiment'],
-    creator: 'SentimentAI',
+    rating: 0,
+    reviews: 0,
+    usage: 'Coming Soon',
+    tags: ['Education', 'Students', 'AI Literacy'],
+    creator: 'EternalMCP',
     featured: false,
+    live: false,
   },
   {
     id: '5',
-    name: 'SecureVault',
-    description: 'Secure secret management for AI workflows. Store, rotate, and audit API keys and credentials safely.',
-    category: 'Security',
+    name: 'Enterprise Data MCP',
+    description: 'Connect internal data sources to Claude with Constitutional AI guardrails. Compliance-ready for BFSI, healthcare, and government sectors.',
+    category: 'Enterprise',
     icon: Lock,
-    color: 'from-red-500 to-rose-700',
-    borderColor: 'border-red-500/20',
-    rating: 5.0,
-    reviews: 98,
-    usage: '44K',
-    tags: ['Security', 'Vault', 'DevOps'],
-    creator: 'CipherSec',
+    color: 'from-violet-500 to-purple-700',
+    borderColor: 'border-violet-500/20',
+    rating: 0,
+    reviews: 0,
+    usage: 'Coming Soon',
+    tags: ['Enterprise', 'BFSI', 'Compliance'],
+    creator: 'EternalMCP',
     featured: false,
+    live: false,
   },
   {
     id: '6',
-    name: 'VectorDB Connect',
-    description: 'Seamlessly query and update vector databases (Pinecone, Weaviate, Qdrant) from any LLM workflow.',
-    category: 'Data',
+    name: 'SME Business Suite',
+    description: 'A bundle of Claude-powered MCP tools for Indian SMEs — market research, email automation, financial analysis, and customer insights.',
+    category: 'Business',
     icon: Database,
     color: 'from-indigo-500 to-blue-700',
     borderColor: 'border-indigo-500/20',
-    rating: 4.8,
-    reviews: 127,
-    usage: '78K',
-    tags: ['Vector DB', 'RAG', 'Embeddings'],
-    creator: 'VectoTech',
+    rating: 0,
+    reviews: 0,
+    usage: 'Coming Soon',
+    tags: ['SME', 'Business', 'India'],
+    creator: 'EternalMCP',
     featured: false,
+    live: false,
   },
 ]
 
@@ -121,7 +127,7 @@ export function FeaturedTools() {
               FEATURED TOOLS
             </div>
             <h2 className="text-4xl sm:text-5xl font-black text-text-primary">
-              Trending in the{' '}
+              Tools in the{' '}
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 ecosystem
               </span>
@@ -147,13 +153,23 @@ export function FeaturedTools() {
                 <div
                   className={`group relative p-6 bg-surface border ${tool.borderColor} rounded-xl transition-all duration-300 hover:shadow-glow hover:translate-y-[-3px] cursor-pointer h-full`}
                 >
-                  {tool.featured && (
-                    <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
+                    {tool.live && (
+                      <Badge variant="primary" size="sm">
+                        ✅ Live
+                      </Badge>
+                    )}
+                    {!tool.live && (
+                      <Badge variant="default" size="sm">
+                        🔜 Coming Soon
+                      </Badge>
+                    )}
+                    {tool.featured && tool.live && (
                       <Badge variant="primary" size="sm">
                         ⭐ Featured
                       </Badge>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   {/* Icon */}
                   <div
@@ -186,11 +202,17 @@ export function FeaturedTools() {
                   {/* Stats */}
                   <div className="flex items-center justify-between text-xs text-muted pt-4 border-t border-border-subtle">
                     <div className="flex items-center gap-1">
-                      <Star size={12} className="text-yellow-400 fill-yellow-400" />
-                      <span className="text-text-secondary font-medium">{tool.rating}</span>
-                      <span>({tool.reviews})</span>
+                      {tool.live && tool.rating > 0 ? (
+                        <>
+                          <Star size={12} className="text-yellow-400 fill-yellow-400" />
+                          <span className="text-text-secondary font-medium">{tool.rating}</span>
+                          <span>({tool.reviews})</span>
+                        </>
+                      ) : (
+                        <span className="text-primary text-xs">🔒 Constitutional AI</span>
+                      )}
                     </div>
-                    <span>{tool.usage} calls</span>
+                    <span className={tool.live ? 'text-emerald-400 font-medium' : 'text-muted'}>{tool.usage}</span>
                     <span className="text-text-secondary">by {tool.creator}</span>
                   </div>
                 </div>
@@ -208,21 +230,24 @@ export function FeaturedTools() {
         >
           <div className="absolute inset-0 bg-gradient-mesh opacity-30" />
           <div className="relative">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-full text-xs text-orange-300 mb-4">
+              🇮🇳 India&apos;s Claude-Dedicated MCP Platform
+            </div>
             <h2 className="text-3xl sm:text-4xl font-black text-text-primary mb-4">
-              Ready to publish your MCP tool?
+              Start using Constitutional AI today
             </h2>
             <p className="text-text-secondary max-w-lg mx-auto mb-8">
-              Join thousands of developers building the AI automation ecosystem. Get your tool in front of the right audience.
+              No code. No setup. Connect your Claude client in 2 minutes and unlock institutional-grade AI tools built on Anthropic&apos;s safety principles.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth?mode=signup">
                 <Button variant="glow" size="lg" icon={<ArrowRight size={18} />} iconPosition="right">
-                  Start Publishing — It&apos;s Free
+                  Get Started Free
                 </Button>
               </Link>
-              <Link href="/docs">
+              <Link href="/marketplace">
                 <Button variant="secondary" size="lg">
-                  Read the Docs
+                  Explore All Tools
                 </Button>
               </Link>
             </div>
