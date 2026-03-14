@@ -56,7 +56,7 @@ export function FileUpload() {
       </div>
       <p className="text-xs text-muted mb-4">
         Upload a local file to get a public URL — then tell Claude to attach it when sending email.
-        Max 10 MB · PDF, DOCX, XLSX, PNG, JPG, CSV
+        Max 10 MB · PDF only
       </p>
 
       {/* Drop zone */}
@@ -70,7 +70,7 @@ export function FileUpload() {
           ref={inputRef}
           type="file"
           className="hidden"
-          accept=".pdf,.docx,.xlsx,.doc,.xls,.png,.jpg,.jpeg,.csv,.txt"
+          accept=".pdf"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
         />
         {uploading ? (
