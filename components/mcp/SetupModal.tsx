@@ -46,6 +46,18 @@ const MCP_CONTENT: Record<string, {
       'Use tool research_company to research HDFC Bank on BSE and email me the PDF',
     ],
   },
+  'storage-manager': {
+    step4: 'Attach a file in Claude chat and say "upload this file" — you will get a 24-hour download link',
+    tools: ['upload_file', 'upload_from_url', 'save_as_file', 'list_files', 'delete_file'],
+    testPrompt: () => 'Use tool list_files to show my stored files',
+    scriptBaseName: 'storage-mcp',
+    prompts: [
+      'Attach a file and say: use tool upload_file to upload this and give me a link',
+      'Use tool upload_from_url to store https://example.com/report.pdf',
+      'Use tool save_as_file to save this content as notes.md',
+      'Use tool list_files to show all my stored files',
+    ],
+  },
 }
 
 export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://www.eternalmcp.com', slug = 'gmail', onClose }: SetupModalProps) {

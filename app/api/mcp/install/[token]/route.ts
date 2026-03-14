@@ -20,6 +20,11 @@ const MCP_META: Record<string, McpMeta> = {
     displayName: 'Company Research MCP',
     testPrompt: "Research Reliance Industries on NSE and give me the PDF",
   },
+  'storage-manager': {
+    serverKey: 'storage-manager',
+    displayName: 'Storage Manager MCP',
+    testPrompt: "Use tool list_files to show my stored files",
+  },
 }
 
 function macScript(mcpUrl: string, meta: McpMeta): string {

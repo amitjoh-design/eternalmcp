@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js'
 import { decryptToken, encryptToken } from '@/lib/mcp-crypto'
 import { sendEmail, createDraft, refreshGmailToken } from '@/lib/mcps/gmail/handler'
 import { handleResearchTool } from '@/lib/mcps/research/handler'
+import { handleStorageTool } from '@/lib/mcps/storage/handler'
 import { getMcpDefinition } from '@/lib/mcps/registry'
 
 // Vercel: allow up to 5 minutes for research report generation
@@ -225,6 +226,21 @@ export async function POST(
         writeLog('error', msg)
         return mcpOk(id, {
           content: [{ type: 'text', text: `❌ Error: ${msg}` }],
+          isError: true,
+        })
+      }
+    }
+
+    // ── Storage Manager handler ───────────────────────────────
+    if (mcpSlug === 'storage-manager') {
+      try {
+        const result = await handleStorageTool(install, toolName ?? '', args, writeLog, db)
+        return mcpOk(id, result)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        writeLog('error', msg)
+        return mcpOk(id, {
+          content: [{ type: 'text', text: `Storage error: ${msg}` }],
           isError: true,
         })
       }
