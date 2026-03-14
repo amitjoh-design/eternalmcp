@@ -93,7 +93,7 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 - **Tool**: `research_company(company_name, exchange, [user_api_key])`
 - **Flow**: Prompt → Haiku API (streaming) → `pdf-lib` PDF → Supabase Storage → signed URL (7 days)
 - **Cost**: Rs.25 credits per report (or user's own Anthropic API key = free)
-- **Model**: `claude-haiku-4-5-20251001` at `max_tokens: 1500`
+- **Model**: `claude-haiku-4-5-20251001` at `max_tokens: 3000`
 - **No OAuth** — direct install
 
 #### Key Technical Decisions (Company Research)
@@ -101,7 +101,7 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 | Decision | Reason |
 |----------|--------|
 | `claude-haiku-4-5-20251001` | Sonnet took ~31s (too slow), Haiku takes ~12-15s |
-| `max_tokens: 1500` | 3000+ tokens exceeded Claude Desktop's 30s MCP timeout |
+| `max_tokens: 3000` | Increased from 1500 once `timeout: 60000` was added to Claude Desktop config — gives richer reports |
 | Streaming (`messages.stream`) | Keeps Vercel function alive during long generation |
 | `pdf-lib` (not pdfkit) | pdfkit requires filesystem — Vercel serverless has no writable FS |
 | `sanitizeForPdf()` | Helvetica = Latin-1 only; ₹ (U+20B9) and smart quotes crash `drawText` |
@@ -160,6 +160,7 @@ app/
       install/[token]/route.ts  ← Generates Mac .sh / Windows .bat scripts
       disconnect/route.ts
       settings/route.ts      ← Save Anthropic API key for research tool
+    upload/route.ts          ← File upload endpoint (multipart → Supabase Storage → signed URL)
 
 components/
   mcp/
@@ -168,6 +169,7 @@ components/
     ConfigSnippet.tsx        ← Manual config JSON snippet (multi-client tabs)
     InstallModal.tsx         ← Install/manage modal (Manage button in dashboard)
     CallLogs.tsx             ← Per-MCP activity log
+    FileUpload.tsx           ← File upload widget shown in My MCPs tab
 
   home/
     Hero.tsx                 ← Landing page hero
@@ -249,8 +251,57 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | `e66d355` | Added `timeout: 60000` to manual ConfigSnippet |
 | `dfc2139` | Fixed ConfigSnippet in InstallModal missing `slug` prop (was defaulting to 'gmail' for all tools) |
 | `c7cfd17` | Increased company research `max_tokens` 1500→3000 (safe now that `timeout: 60000` is set) |
-| *(local)* | File upload feature: `POST /api/upload` + `FileUpload` component in MCPs tab — stores files in `research-pdfs` bucket under `uploads/{user_id}/`, returns 7-day signed URL for Gmail attachment use |
-| *(local)* | Gmail `attachment_url` description updated to explicitly require public URL and guide users to upload first |
+| `bff4d3b` | Updated CLAUDE.md session log with actual commit hash for max_tokens change |
+| `ec6d0a8` | File upload feature: `POST /api/upload` + `FileUpload` component in MCPs tab — stores files in `research-pdfs` bucket under `uploads/{user_id}/`, returns 7-day signed URL for Gmail attachment use |
+| `ec6d0a8` | Gmail `attachment_url` description updated to explicitly require public URL and guide users to upload first |
+| `bc721fa` | Fixed upload RLS error — switched from `createServiceClient` (SSR wrapper) to raw `createClient` from `@supabase/supabase-js` for storage operations, matching pattern used in research handler |
+| `bc721fa` | Restricted FileUpload to PDF-only temporarily while bucket MIME allowlist was PDF-only |
+| `df12db0` | Expanded `research-pdfs` Supabase bucket MIME allowlist via dashboard to: PDF, DOCX, XLSX, DOC, XLS, PNG, JPG, CSV, TXT — updated `app/api/upload/route.ts` and `FileUpload.tsx` to accept all types |
+
+---
+
+## File Upload Feature (Dashboard → My MCPs tab)
+
+Allows users to upload files and get a signed URL to use as Gmail attachments.
+
+- **API route**: `POST /api/upload` — multipart form, field name `file`, max 10 MB
+- **Component**: `components/mcp/FileUpload.tsx` — shown below MCP cards in the My MCPs tab
+- **Storage**: `research-pdfs` Supabase bucket, path `uploads/{user_id}/{timestamp}_{filename}`
+- **Auth**: Uses SSR Supabase client for user auth, raw `createClient` (service role) for storage upload
+- **Returns**: 7-day signed URL (copy button shown after upload)
+
+### Supported file types
+
+PDF, DOCX, XLSX, DOC, XLS, PNG, JPG, JPEG, CSV, TXT
+
+### Supabase bucket config (`research-pdfs`)
+
+| Setting | Value |
+|---------|-------|
+| Public | No (private, signed URLs only) |
+| File size limit | 50 MB |
+| Allowed MIME types | `application/pdf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `application/msword`, `application/vnd.ms-excel`, `image/png`, `image/jpeg`, `text/csv`, `text/plain` |
+
+### Why raw `createClient` for storage (IMPORTANT)
+
+```typescript
+// ❌ Wrong — @supabase/ssr wrapper does NOT bypass RLS even with service role key
+import { createServiceClient } from '@/lib/supabase/server'
+
+// ✅ Correct — raw client bypasses RLS (same pattern as research handler)
+import { createClient } from '@supabase/supabase-js'
+const serviceClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+```
+
+### Usage flow for Gmail attachments
+
+1. User goes to **My MCPs** tab → scrolls below MCP cards
+2. Uploads file (drag-and-drop or click) → copies the signed URL
+3. Tells Claude: *"Send email to X, attach this URL: [paste]"*
+4. Gmail tool uses `attachment_url` parameter with that URL
 
 ---
 
