@@ -294,6 +294,7 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | `bc721fa` | Restricted FileUpload to PDF-only temporarily while bucket MIME allowlist was PDF-only |
 | `df12db0` | Expanded `research-pdfs` Supabase bucket MIME allowlist via dashboard to: PDF, DOCX, XLSX, DOC, XLS, PNG, JPG, CSV, TXT — updated `app/api/upload/route.ts` and `FileUpload.tsx` to accept all types |
 | `cec5008` | Storage Manager MCP — 5 tools (upload_file, upload_from_url, save_as_file, list_files, delete_file), 24h signed URLs, 10 file / 10 GB / 20 MB limits, `storage_files` DB table |
+| `76940aa` | UI standardization: `InstallModal` now fully dynamic via `getMcpDefinition(slug)` — no longer hardcoded to Company Research; `ConfigSnippet` generates combined `mcpServers` block for all connected MCPs (new `allInstalled[]` prop); `SetupModal` + dashboard wired to pass all connected MCPs to both modals |
 
 ---
 
@@ -357,6 +358,11 @@ const serviceClient = createClient(
 - Use streaming for any Anthropic API calls > 10s
 - Keep `max_tokens` low enough that total pipeline fits in 20s (MCP client timeout = 60s with our config, but be conservative)
 - Pass `slug` prop to every `<ConfigSnippet>` usage
+
+**UI is fully automatic — no extra code needed for:**
+- `InstallModal` (Manage button): fully dynamic via `getMcpDefinition(slug)` — reads icon, name, and permissions from the definition file automatically
+- `ConfigSnippet` combined config: already generates a single `mcpServers` block with ALL connected MCPs; dashboard passes `allInstalledMcps` to `InstallModal` and `allInstalled` to `SetupModal`
+- You only need steps 1–7 above; the UI components handle themselves
 
 ---
 
