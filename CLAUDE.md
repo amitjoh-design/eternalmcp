@@ -124,7 +124,36 @@ function sanitizeForPdf(text: string): string {
 
 Applied at entry of `generateResearchPDF()` and at every `drawText` call site.
 
-### 2. Gmail Sender (`gmail-sender`)
+### 2. Storage Manager (`storage-manager`)
+
+- **Files**: `lib/mcps/storage/handler.ts` + `lib/mcps/storage/definition.ts`
+- **Tools**: `upload_file`, `upload_from_url`, `save_as_file`, `list_files`, `delete_file`
+- **No OAuth** — direct install
+- **Storage**: `research-pdfs` Supabase bucket, path `storage/{user_id}/{timestamp}_{filename}`
+- **DB table**: `storage_files` (id, user_id, filename, storage_path, mime_type, file_size, expires_at, created_at)
+- **Limits**: 10 files per user, 10 GB total, 20 MB per file, 24-hour signed URLs
+
+#### Tool summary
+
+| Tool | Input | Use case |
+|------|-------|---------|
+| `upload_file` | `content_base64`, `filename`, `[mime_type]` | File attached in Claude chat |
+| `upload_from_url` | `url`, `[filename]` | File at a public URL |
+| `save_as_file` | `content`, `filename`, `[format]` | Claude-generated text → txt/md/html/json/csv |
+| `list_files` | — | Lists active files with fresh 24h signed URLs |
+| `delete_file` | `file_id` | Deletes file from storage + DB |
+
+#### Key Technical Decisions (Storage Manager)
+
+| Decision | Reason |
+|----------|--------|
+| `upload_file` uses base64 | MCP JSON-RPC is text-only; Claude Desktop passes attached file content as base64 in context |
+| Quota checked before upload | Prevent exceeding 10 file / 10 GB limits before hitting Supabase |
+| `storage/{user_id}/` path prefix | Separates from dashboard uploads (`uploads/{user_id}/`) in same bucket |
+| 24h TTL (not 7 days) | Storage is for temporary sharing/transfer, not long-term hosting |
+| Service role client for storage | Same pattern as research handler — SSR wrapper does NOT bypass RLS |
+
+### 3. Gmail Sender (`gmail-sender`)
 
 - **File**: `lib/mcps/gmail/handler.ts` + `lib/mcps/gmail/definition.ts`
 - **Tools**: `send_email(to, subject, body, [cc], [bcc], [attachment_url])`, `create_draft(...)`
@@ -146,6 +175,9 @@ lib/
     gmail/
       definition.ts
       handler.ts
+    storage/
+      definition.ts          ← Tool schema, limits, metadata
+      handler.ts             ← upload_file, upload_from_url, save_as_file, list_files, delete_file
   types.ts                   ← MCPTool, User, etc.
   mcp-crypto.ts              ← Token encryption/decryption
 
@@ -157,6 +189,7 @@ app/
         company-research/route.ts
         gmail/route.ts
         gmail/callback/route.ts
+        storage/route.ts
       install/[token]/route.ts  ← Generates Mac .sh / Windows .bat scripts
       disconnect/route.ts
       settings/route.ts      ← Save Anthropic API key for research tool
@@ -185,6 +218,8 @@ app/
 
 supabase/
   schema.sql                 ← Full DB schema + RLS policies
+  migrations/
+    add_storage_files.sql    ← storage_files table + indexes + RLS (run after schema.sql)
 ```
 
 ---
@@ -200,6 +235,7 @@ supabase/
 | `tool_usage` | Per-user per-tool call counts |
 | `reviews` | Ratings on marketplace tools |
 | `api_keys` | User API credentials |
+| `storage_files` | Files uploaded via Storage Manager MCP (filename, path, size, expires_at) |
 
 All tables have RLS. Admin bypasses via service role key.
 
@@ -257,6 +293,7 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | `bc721fa` | Fixed upload RLS error — switched from `createServiceClient` (SSR wrapper) to raw `createClient` from `@supabase/supabase-js` for storage operations, matching pattern used in research handler |
 | `bc721fa` | Restricted FileUpload to PDF-only temporarily while bucket MIME allowlist was PDF-only |
 | `df12db0` | Expanded `research-pdfs` Supabase bucket MIME allowlist via dashboard to: PDF, DOCX, XLSX, DOC, XLS, PNG, JPG, CSV, TXT — updated `app/api/upload/route.ts` and `FileUpload.tsx` to accept all types |
+| `cec5008` | Storage Manager MCP — 5 tools (upload_file, upload_from_url, save_as_file, list_files, delete_file), 24h signed URLs, 10 file / 10 GB / 20 MB limits, `storage_files` DB table |
 
 ---
 
@@ -336,6 +373,23 @@ Priority order for non-technical Indian users:
 8. **Google Calendar Manager** — Google OAuth
 9. **Image Text Extractor (OCR)** — Google Cloud Vision API
 10. **Indian Financial Calculator Suite** — EMI, SIP, income tax, HRA
+
+## Storage Manager MCP — Additional Notes
+
+### Storage path layout in `research-pdfs` bucket
+
+```
+research-pdfs/
+  uploads/{user_id}/           ← Dashboard FileUpload widget (7-day URLs)
+  storage/{user_id}/           ← Storage Manager MCP (24-hour URLs)
+  {user_id}/                   ← Company Research PDFs (7-day URLs)
+```
+
+### Quota enforcement
+
+Quota is checked at upload time by counting non-expired rows in `storage_files` for the user.
+Expired files are NOT auto-deleted from Supabase Storage — they simply stop being counted toward quota.
+If needed in future, add a cron job to purge rows where `expires_at < NOW()`.
 
 ---
 
