@@ -6,10 +6,10 @@ import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'pdf-lib'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // ── Institutional Research Prompt ────────────────────────────────────────────
-const RESEARCH_PROMPT = `You are a Senior Equity Research Analyst. Write a professional institutional research report for COMPANY_NAME listed on EXCHANGE.
+const RESEARCH_PROMPT = `You are a Senior Equity Research Analyst. Write a concise institutional research report for COMPANY_NAME listed on EXCHANGE.
 
-Use your training knowledge. Write "N/A" for any data you are not confident about.
-IMPORTANT: Complete ALL 9 sections fully. Do not truncate or stop early.
+Use your training knowledge. Write "N/A" for unknown data.
+IMPORTANT: Complete ALL 9 sections. Be concise — 2-3 sentences per paragraph, no filler text.
 
 # 1. Executive Summary
 3-4 sentences: company overview, market position, and investment view (BUY/HOLD/SELL with primary reason).
@@ -421,7 +421,7 @@ export async function handleResearchTool(
     const chunks: string[] = []
     const stream = await anthropic.messages.stream({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
+      max_tokens: 7000,
       messages: [{ role: 'user', content: prompt }],
     })
     for await (const event of stream) {
