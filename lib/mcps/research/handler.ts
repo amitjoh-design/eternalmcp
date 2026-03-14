@@ -117,15 +117,7 @@ Key macro factors influencing the sector (interest rates, inflation, commodity p
 
 Valuation verdict: Undervalued / Fairly Valued / Overvalued — with reasoning on growth expectations, risk premium, and sector multiples.
 
-# 6. Investment Thesis
-
-3-5 key reasons an investor should own this stock.
-
-- Thesis 1:
-- Thesis 2:
-- Thesis 3:
-
-# 7. Key Catalysts
+# 6. Key Catalysts
 
 Potential events that could move the stock price:
 - Earnings surprises
@@ -134,11 +126,11 @@ Potential events that could move the stock price:
 - Industry cycle shifts
 - Macro changes
 
-# 8. Key Risks
+# 7. Key Risks
 
 Top 3-5 risks that could invalidate the investment thesis, each explained clearly.
 
-# 9. Final Investment Recommendation
+# 8. Final Investment Recommendation
 
 Rating: BUY / HOLD / SELL
 Confidence Index: [1-10] (10 = extremely high confidence)
@@ -503,7 +495,7 @@ export async function handleResearchTool(
     const chunks: string[] = []
     const stream = await anthropic.messages.stream({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 6000,
+      max_tokens: 5000,
       messages: [{ role: 'user', content: prompt }],
     })
     for await (const event of stream) {
