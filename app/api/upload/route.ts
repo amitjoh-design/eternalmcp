@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = [
@@ -16,8 +17,8 @@ const ALLOWED_TYPES = [
 ]
 
 export async function POST(req: NextRequest) {
-  // Authenticate user via session cookie
-  const supabase = await createClient()
+  // Authenticate user via session cookie (anon SSR client)
+  const supabase = await createServerClient()
   const { data: { user }, error: authErr } = await supabase.auth.getUser()
   if (authErr || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -47,10 +48,13 @@ export async function POST(req: NextRequest) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100)
   const storagePath = `uploads/${user.id}/${Date.now()}-${safeName}`
 
-  // Use service client for storage (bypasses RLS)
-  const serviceClient = await createServiceClient()
+  // Raw service-role client — same pattern as research handler, bypasses RLS
+  const adminStorage = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  ).storage
 
-  const { error: uploadErr } = await serviceClient.storage
+  const { error: uploadErr } = await adminStorage
     .from('research-pdfs')
     .upload(storagePath, buffer, { contentType: file.type, upsert: false })
 
@@ -58,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Upload failed: ${uploadErr.message}` }, { status: 500 })
   }
 
-  const { data: signedData, error: signErr } = await serviceClient.storage
+  const { data: signedData, error: signErr } = await adminStorage
     .from('research-pdfs')
     .createSignedUrl(storagePath, 7 * 24 * 60 * 60)
 
