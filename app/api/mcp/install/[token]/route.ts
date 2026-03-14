@@ -67,7 +67,7 @@ config.setdefault("mcpServers", {})
 config["mcpServers"]["${meta.serverKey}"] = {
     "command": "npx",
     "args": ["-y", "mcp-remote", mcp_url],
-    "timeout": 60000
+    "timeout": 300000
 }
 
 with open(config_file, "w") as f:
@@ -169,7 +169,7 @@ if (-not $cfg.PSObject.Properties['mcpServers']) {
 $cfg.mcpServers | Add-Member -Name '${meta.serverKey}' -Value ([PSCustomObject]@{
     command = 'npx'
     args    = @('-y', 'mcp-remote', $mcpUrl)
-    timeout = 60000
+    timeout = 300000
 }) -MemberType NoteProperty -Force
 
 # ── Save ────────────────────────────────────────────────────────────────────

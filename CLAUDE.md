@@ -74,14 +74,15 @@ Body: { jsonrpc: '2.0', method: 'tools/list' | 'tools/call', id: 1, ... }
     "company-research": {
       "command": "npx",
       "args": ["-y", "mcp-remote", "https://www.eternalmcp.com/api/mcp/emcp_xxx"],
-      "timeout": 60000
+      "timeout": 300000
     }
   }
 }
 ```
 
-**Critical**: `timeout: 60000` is required — without it Claude Desktop times out after ~30s,
+**Critical**: `timeout: 300000` is required — without it Claude Desktop times out after ~30s,
 which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
+300000ms (5 min) matches Vercel Pro's maxDuration: 300s — the maximum useful value.
 
 ---
 

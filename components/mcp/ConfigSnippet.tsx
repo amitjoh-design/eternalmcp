@@ -34,7 +34,7 @@ function buildConfig(client: ClientTab, entries: InstalledEntry[], appUrl: strin
         servers[e.slug] = {
           command: 'npx',
           args: ['-y', 'mcp-remote', `${appUrl}/api/mcp/${e.token}`],
-          timeout: 60000,
+          timeout: 300000,
         }
       }
       return JSON.stringify({ mcpServers: servers }, null, 2)
@@ -175,7 +175,7 @@ export function ConfigSnippet({
           <p>🪟 Windows (standard): <span className="text-text-secondary font-mono">%APPDATA%\Claude\</span></p>
           <p>🪟 Windows (Store): <span className="text-text-secondary font-mono">%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude\</span></p>
           <p className="text-[10px]">💡 Find it in Claude Desktop: ☰ → Settings → Developer → Edit Config</p>
-          <p className="text-[10px] text-yellow-400/80">⏱ <code>timeout: 60000</code> gives tools like Company Research enough time to generate reports without timing out.</p>
+          <p className="text-[10px] text-yellow-400/80">⏱ <code>timeout: 300000</code> gives tools like Company Research enough time to generate reports without timing out.</p>
         </div>
       ) : (
         <p className="text-xs text-muted">
