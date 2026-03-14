@@ -3,8 +3,18 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
-// research-pdfs bucket only allows PDFs — expand after updating bucket MIME allowlist in Supabase
-const ALLOWED_TYPES = ['application/pdf']
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/msword',
+  'application/vnd.ms-excel',
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'text/csv',
+  'text/plain',
+]
 
 export async function POST(req: NextRequest) {
   // Authenticate user via session cookie (anon SSR client)
