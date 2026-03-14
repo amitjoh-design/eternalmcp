@@ -13,6 +13,7 @@ interface SetupModalProps {
   mcpIcon: string
   appUrl?: string
   slug?: string
+  allInstalled?: Array<{ token: string; slug: string }>
   onClose: () => void
 }
 
@@ -60,7 +61,7 @@ const MCP_CONTENT: Record<string, {
   },
 }
 
-export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://www.eternalmcp.com', slug = 'gmail', onClose }: SetupModalProps) {
+export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://www.eternalmcp.com', slug = 'gmail', allInstalled, onClose }: SetupModalProps) {
   const [showFindGuide, setShowFindGuide] = useLocalState(false)
   const [apiKey, setApiKey] = useLocalState('')
   const [apiKeySaving, setApiKeySaving] = useLocalState(false)
@@ -382,7 +383,7 @@ export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://w
             </div>
 
             {/* Config snippet with client tabs */}
-            <ConfigSnippet token={token} appUrl={appUrl} slug={slug} />
+            <ConfigSnippet token={token} appUrl={appUrl} slug={slug} allInstalled={allInstalled} />
 
             {/* ── VERIFY IT WORKED ── */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">

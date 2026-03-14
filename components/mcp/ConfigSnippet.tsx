@@ -1,13 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { Copy, Check, Terminal } from 'lucide-react'
+import { Copy, Check, Terminal, Layers } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+interface InstalledEntry {
+  token: string
+  slug: string
+}
 
 interface ConfigSnippetProps {
   token: string
   appUrl?: string
   slug?: string
+  // When provided, generates a combined config for ALL connected MCPs
+  allInstalled?: InstalledEntry[]
 }
 
 type ClientTab = 'claude' | 'cursor' | 'windsurf' | 'continue'
@@ -19,27 +26,40 @@ const TABS: { id: ClientTab; label: string; configFile: string }[] = [
   { id: 'continue', label: 'Continue.dev',   configFile: '~/.continue/config.json' },
 ]
 
-function buildConfig(client: ClientTab, token: string, appUrl: string, slug: string): string {
-  const url = `${appUrl}/api/mcp/${token}`
+function buildConfig(client: ClientTab, entries: InstalledEntry[], appUrl: string): string {
   switch (client) {
-    case 'claude':
-      // npx mcp-remote works with all Claude Desktop versions (requires Node.js)
-      // timeout: 60000ms gives tools like company-research enough time to complete
-      return JSON.stringify(
-        { mcpServers: { [slug]: { command: 'npx', args: ['-y', 'mcp-remote', url], timeout: 60000 } } },
-        null,
-        2
-      )
-    case 'cursor':
-      return JSON.stringify({ mcpServers: { [slug]: { url } } }, null, 2)
-    case 'windsurf':
-      return JSON.stringify({ mcpServers: { [slug]: { serverUrl: url } } }, null, 2)
-    case 'continue':
-      return JSON.stringify(
-        { mcpServers: [{ name: slug, transport: { type: 'streamable-http', url } }] },
-        null,
-        2
-      )
+    case 'claude': {
+      const servers: Record<string, unknown> = {}
+      for (const e of entries) {
+        servers[e.slug] = {
+          command: 'npx',
+          args: ['-y', 'mcp-remote', `${appUrl}/api/mcp/${e.token}`],
+          timeout: 60000,
+        }
+      }
+      return JSON.stringify({ mcpServers: servers }, null, 2)
+    }
+    case 'cursor': {
+      const servers: Record<string, unknown> = {}
+      for (const e of entries) {
+        servers[e.slug] = { url: `${appUrl}/api/mcp/${e.token}` }
+      }
+      return JSON.stringify({ mcpServers: servers }, null, 2)
+    }
+    case 'windsurf': {
+      const servers: Record<string, unknown> = {}
+      for (const e of entries) {
+        servers[e.slug] = { serverUrl: `${appUrl}/api/mcp/${e.token}` }
+      }
+      return JSON.stringify({ mcpServers: servers }, null, 2)
+    }
+    case 'continue': {
+      const mcpServers = entries.map((e) => ({
+        name: e.slug,
+        transport: { type: 'streamable-http', url: `${appUrl}/api/mcp/${e.token}` },
+      }))
+      return JSON.stringify({ mcpServers }, null, 2)
+    }
   }
 }
 
@@ -56,12 +76,25 @@ function getConfigPath(client: ClientTab): { mac: string; windows: string } {
   }
 }
 
-export function ConfigSnippet({ token, appUrl = 'https://www.eternalmcp.com', slug = 'gmail' }: ConfigSnippetProps) {
+export function ConfigSnippet({
+  token,
+  appUrl = 'https://www.eternalmcp.com',
+  slug = 'gmail',
+  allInstalled,
+}: ConfigSnippetProps) {
   const [activeTab, setActiveTab] = useState<ClientTab>('claude')
   const [copied, setCopied] = useState(false)
 
+  // Use allInstalled if provided (combined view), else fall back to single MCP
+  const entries: InstalledEntry[] =
+    allInstalled && allInstalled.length > 0
+      ? allInstalled
+      : [{ token, slug }]
+
+  const isMulti = entries.length > 1
+
   const tab = TABS.find((t) => t.id === activeTab)!
-  const snippet = buildConfig(activeTab, token, appUrl, slug)
+  const snippet = buildConfig(activeTab, entries, appUrl)
   const paths = getConfigPath(activeTab)
 
   const handleCopy = async () => {
@@ -73,10 +106,28 @@ export function ConfigSnippet({ token, appUrl = 'https://www.eternalmcp.com', sl
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Terminal size={14} className="text-primary" />
-        <span className="text-sm font-medium text-text-primary">Add to your AI client</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Terminal size={14} className="text-primary" />
+          <span className="text-sm font-medium text-text-primary">Add to your AI client</span>
+        </div>
+        {isMulti && (
+          <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
+            <Layers size={10} className="text-primary" />
+            <span className="text-[10px] text-primary font-semibold">All {entries.length} MCPs included</span>
+          </div>
+        )}
       </div>
+
+      {isMulti && (
+        <div className="flex flex-wrap gap-1.5 p-2.5 bg-surface-2 border border-border-subtle rounded-lg">
+          {entries.map((e) => (
+            <span key={e.slug} className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-mono font-semibold">
+              {e.slug}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Client tabs */}
       <div className="flex gap-1 p-1 bg-surface-2 rounded-lg">
@@ -96,7 +147,10 @@ export function ConfigSnippet({ token, appUrl = 'https://www.eternalmcp.com', sl
       </div>
 
       <p className="text-xs text-text-secondary">
-        Paste into your <code className="text-primary">{tab.configFile}</code> file:
+        {isMulti
+          ? <>Replace the entire <code className="text-primary">mcpServers</code> block in your <code className="text-primary">{tab.configFile}</code> with this:</>
+          : <>Paste into your <code className="text-primary">{tab.configFile}</code> file:</>
+        }
       </p>
 
       <div className="relative bg-[#0d1117] border border-border-subtle rounded-xl overflow-hidden">

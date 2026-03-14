@@ -472,6 +472,7 @@ function DashboardContent() {
           userId={user.id}
           slug={selectedMcp}
           installed={installedMcps.find((m) => m.mcp_slug === selectedMcp) ?? null}
+          allInstalledMcps={installedMcps}
           onConnected={async () => {
             await fetchInstalledMcps(user.id)
             setSelectedMcp(null)
@@ -493,6 +494,9 @@ function DashboardContent() {
             mcpIcon={def.icon}
             appUrl={appUrl}
             slug={def.slug}
+            allInstalled={installedMcps
+              .filter((m) => m.status === 'connected')
+              .map((m) => ({ token: m.mcp_token, slug: m.mcp_slug }))}
             onClose={() => setSetupMcpSlug(null)}
           />
         )
