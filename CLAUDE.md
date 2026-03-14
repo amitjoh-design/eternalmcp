@@ -295,6 +295,7 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | `df12db0` | Expanded `research-pdfs` Supabase bucket MIME allowlist via dashboard to: PDF, DOCX, XLSX, DOC, XLS, PNG, JPG, CSV, TXT — updated `app/api/upload/route.ts` and `FileUpload.tsx` to accept all types |
 | `cec5008` | Storage Manager MCP — 5 tools (upload_file, upload_from_url, save_as_file, list_files, delete_file), 24h signed URLs, 10 file / 10 GB / 20 MB limits, `storage_files` DB table |
 | `76940aa` | UI standardization: `InstallModal` now fully dynamic via `getMcpDefinition(slug)` — no longer hardcoded to Company Research; `ConfigSnippet` generates combined `mcpServers` block for all connected MCPs (new `allInstalled[]` prop); `SetupModal` + dashboard wired to pass all connected MCPs to both modals |
+| `fc33041` | Fix Storage Manager install — connect route was at `/api/mcp/connect/storage` but slug is `storage-manager`; renamed folder to `storage-manager` so `handleDirectInstall` hits the correct endpoint |
 
 ---
 
