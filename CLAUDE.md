@@ -92,7 +92,7 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 
 - **File**: `lib/mcps/research/handler.ts` + `lib/mcps/research/definition.ts`
 - **Tool**: `research_company(company_name, exchange, [user_api_key])`
-- **Flow**: Prompt → Haiku API (streaming) → `pdf-lib` PDF → Supabase Storage → signed URL (7 days)
+- **Flow**: Prompt → Haiku API (streaming) → return markdown text directly (no PDF, no storage)
 - **Cost**: Rs.25 credits per report (or user's own Anthropic API key = free)
 - **Model**: `claude-haiku-4-5-20251001` at `max_tokens: 5000`
 - **No OAuth** — direct install
@@ -102,28 +102,9 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 | Decision | Reason |
 |----------|--------|
 | `claude-haiku-4-5-20251001` | Sonnet took ~31s (too slow), Haiku takes ~12-15s |
-| `max_tokens: 5000` | Reduced from 6000 to prevent timeouts — 8-section report (Investment Thesis section removed) |
+| `max_tokens: 5000` | Balanced for 7-section report within Vercel timeout |
 | Streaming (`messages.stream`) | Keeps Vercel function alive during long generation |
-| `pdf-lib` (not pdfkit) | pdfkit requires filesystem — Vercel serverless has no writable FS |
-| `sanitizeForPdf()` | Helvetica = Latin-1 only; ₹ (U+20B9) and smart quotes crash `drawText` |
-
-#### `sanitizeForPdf()` function (IMPORTANT)
-
-```typescript
-function sanitizeForPdf(text: string): string {
-  return text
-    .replace(/₹|\u20B9/g, 'Rs.')   // Rupee symbol crashes Helvetica
-    .replace(/[""]/g, '"')          // Smart quotes
-    .replace(/['']/g, "'")
-    .replace(/–/g, '-')             // En dash
-    .replace(/—/g, '--')            // Em dash
-    .replace(/…/g, '...')
-    .replace(/×/g, 'x')
-    .replace(/[^\x00-\xFF]/g, '?') // Catch-all for any non-Latin-1
-}
-```
-
-Applied at entry of `generateResearchPDF()` and at every `drawText` call site.
+| No PDF generation | Removed pdf-lib entirely — plain markdown is faster, richer (no Latin-1 constraint), and renders beautifully in Claude Desktop |
 
 ### 2. Storage Manager (`storage-manager`)
 
@@ -300,6 +281,8 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | `e3b5f5c` | Increased MCP timeout 60000→300000ms (matches Vercel Pro maxDuration 300s) across ConfigSnippet and install scripts |
 | `6e28855` | Upgraded company research prompt to full 9-section institutional equity research report (Goldman Sachs / Morgan Stanley style); `max_tokens` 3000→6000 |
 | `59d51a5` | Reduced `max_tokens` 6000→5000 to fix timeout failures; removed Investment Thesis section (was section 6); renumbered remaining sections to 8 total |
+| `d7ab189` | Removed Fundamental Analysis section (5yr financials tables); renumbered to 7 sections; `max_tokens` set to 5000 |
+| `7fa7903` | Removed PDF generation entirely — tool now returns plain markdown text; removed pdf-lib, Supabase storage upload, signed URL, sanitizeForPdf; ~5-10s faster, no Latin-1 constraints |
 
 ---
 
