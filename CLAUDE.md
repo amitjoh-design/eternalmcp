@@ -135,7 +135,37 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 | 24h TTL (not 7 days) | Storage is for temporary sharing/transfer, not long-term hosting |
 | Service role client for storage | Same pattern as research handler — SSR wrapper does NOT bypass RLS |
 
-### 3. Gmail Sender (`gmail-sender`)
+### 3. PDF Creator (`pdf-creator`)
+
+- **Files**: `lib/mcps/pdf/handler.ts` + `lib/mcps/pdf/definition.ts`
+- **Tool**: `create_pdf(content, filename, [title])`
+- **Flow**: Detect format → (HTML? strip to markdown) → pdf-lib PDF → Supabase Storage → 24h signed URL
+- **No OAuth** — direct install
+- **Storage**: `research-pdfs` bucket, path `pdfs/{user_id}/{timestamp}_{filename}.pdf`
+- **DB table**: reuses `storage_files` — PDFs appear in Storage Manager `list_files`
+
+#### Supported / rejected formats
+
+| Input | Behaviour |
+|-------|-----------|
+| Markdown | Rendered directly |
+| Plain text | Rendered directly |
+| Basic HTML | Auto-detected (`<tag>` present), stripped to markdown, then rendered |
+| Binary / null-bytes | Rejected with clear error and instructions |
+| Word / Excel / PPT | Rejected — user told to ask Claude to extract text first |
+| Content > 200 KB | Rejected |
+
+#### Key Technical Decisions (PDF Creator)
+
+| Decision | Reason |
+|----------|--------|
+| `pdf-lib` (no filesystem) | Same reason as before — Vercel serverless has no writable FS |
+| HTML auto-detection | Checks for `<tag>` pattern — no explicit `format` param needed, cleaner UX |
+| Reuses `storage_files` table | PDFs created here show up in Storage Manager `list_files` — one unified file view |
+| `pdfs/{user_id}/` path | Separate from `storage/{user_id}/` (Storage Manager) and `uploads/{user_id}/` (dashboard widget) |
+| 24h TTL | Same as Storage Manager — for sharing/transfer, not long-term hosting |
+
+### 4. Gmail Sender (`gmail-sender`)
 
 - **File**: `lib/mcps/gmail/handler.ts` + `lib/mcps/gmail/definition.ts`
 - **Tools**: `send_email(to, subject, body, [cc], [bcc], [attachment_url])`, `create_draft(...)`
@@ -160,6 +190,9 @@ lib/
     storage/
       definition.ts          ← Tool schema, limits, metadata
       handler.ts             ← upload_file, upload_from_url, save_as_file, list_files, delete_file
+    pdf/
+      definition.ts          ← Tool schema, supported formats, permissions
+      handler.ts             ← create_pdf (markdown/text/HTML → pdf-lib → Supabase → signed URL)
   types.ts                   ← MCPTool, User, etc.
   mcp-crypto.ts              ← Token encryption/decryption
 
@@ -172,6 +205,7 @@ app/
         gmail/route.ts
         gmail/callback/route.ts
         storage-manager/route.ts
+        pdf-creator/route.ts
       install/[token]/route.ts  ← Generates Mac .sh / Windows .bat scripts
       disconnect/route.ts
       settings/route.ts      ← Save Anthropic API key for research tool
@@ -283,6 +317,7 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | `59d51a5` | Reduced `max_tokens` 6000→5000 to fix timeout failures; removed Investment Thesis section (was section 6); renumbered remaining sections to 8 total |
 | `d7ab189` | Removed Fundamental Analysis section (5yr financials tables); renumbered to 7 sections; `max_tokens` set to 5000 |
 | `7fa7903` | Removed PDF generation entirely — tool now returns plain markdown text; removed pdf-lib, Supabase storage upload, signed URL, sanitizeForPdf; ~5-10s faster, no Latin-1 constraints |
+| `92d4875` | Added PDF Creator MCP — `create_pdf(content, filename, [title])`; accepts markdown/text/HTML; rejects binary/Word/Excel with helpful error; stores in `pdfs/{user_id}/`; tracked in `storage_files`; 24h signed URL |
 
 ---
 
@@ -412,6 +447,7 @@ Priority order for non-technical Indian users:
 research-pdfs/
   uploads/{user_id}/           ← Dashboard FileUpload widget (7-day URLs)
   storage/{user_id}/           ← Storage Manager MCP (24-hour URLs)
+  pdfs/{user_id}/              ← PDF Creator MCP (24-hour URLs, tracked in storage_files)
 ```
 
 Note: Company Research no longer uploads PDFs — it returns plain markdown text directly.
