@@ -52,7 +52,7 @@ const FLOATING_CARDS = [
 const STATS = [
   { value: '100%', label: 'Claude-Powered' },
   { value: '1.4B', label: 'India Addressable' },
-  { value: '₹0', label: 'Code Required' },
+  { value: '₹0', label: 'No Code Required' },
   { value: '99.9%', label: 'Uptime' },
 ]
 

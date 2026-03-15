@@ -93,7 +93,6 @@ const DIVISIONS = [
       'Multi-tenant MCP deployment',
       'Internal data source integration',
       'BFSI · Healthcare · Government ready',
-      'DeltaFlow Technologies trading vertical',
     ],
     color: 'text-violet-400',
     bg: 'bg-violet-500/10',
