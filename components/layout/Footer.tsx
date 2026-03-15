@@ -111,27 +111,6 @@ export function Footer() {
           ))}
         </div>
 
-        {/* Ecosystem band */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-primary/5 border border-primary/10 rounded-xl mb-8">
-          <span className="text-xs font-semibold text-primary uppercase tracking-wider flex-shrink-0">
-            Ecosystem
-          </span>
-          <div className="flex flex-wrap gap-6">
-            {ECOSYSTEM_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors group"
-              >
-                <span className="font-medium">{link.label}</span>
-                <ExternalLink size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span className="text-xs text-muted">· {link.description}</span>
-              </a>
-            ))}
-          </div>
-        </div>
 
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-border-subtle">
