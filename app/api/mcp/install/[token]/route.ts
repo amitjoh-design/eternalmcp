@@ -30,6 +30,11 @@ const MCP_META: Record<string, McpMeta> = {
     displayName: 'PDF Creator MCP',
     testPrompt: "Use tool create_pdf to convert this text to a PDF: Hello World",
   },
+  'data-summary': {
+    serverKey: 'data-summary',
+    displayName: 'Data Summary MCP',
+    testPrompt: "Use tool create_dashboard to build a demo BI dashboard",
+  },
 }
 
 function macScript(mcpUrl: string, meta: McpMeta): string {

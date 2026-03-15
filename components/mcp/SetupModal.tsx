@@ -71,6 +71,18 @@ const MCP_CONTENT: Record<string, {
       'Save this markdown document as a PDF called "project-proposal"',
     ],
   },
+  'data-summary': {
+    step4: 'Paste your CSV data and say "build a dashboard" — you get an interactive BI dashboard link',
+    tools: ['create_dashboard'],
+    testPrompt: () => 'Use tool create_dashboard to build a demo business intelligence dashboard',
+    scriptBaseName: 'data-summary-mcp',
+    prompts: [
+      'Use tool create_dashboard to build a dashboard from this CSV: [paste your data]',
+      'Analyze my bank statement — use tool create_dashboard with this data: [paste CSV]',
+      'Use tool create_dashboard to build a sales report dashboard with title "Q1 Sales"',
+      'Build an interactive BI dashboard from my expense data using create_dashboard',
+    ],
+  },
 }
 
 export function SetupModal({ token, email, mcpName, mcpIcon, appUrl = 'https://www.eternalmcp.com', slug = 'gmail', allInstalled, onClose }: SetupModalProps) {

@@ -10,6 +10,7 @@ import { sendEmail, createDraft, refreshGmailToken } from '@/lib/mcps/gmail/hand
 import { handleResearchTool } from '@/lib/mcps/research/handler'
 import { handleStorageTool } from '@/lib/mcps/storage/handler'
 import { handlePdfCreatorTool } from '@/lib/mcps/pdf/handler'
+import { handleDataSummaryTool } from '@/lib/mcps/data-summary/handler'
 import { getMcpDefinition } from '@/lib/mcps/registry'
 
 // Vercel: allow up to 5 minutes for research report generation
@@ -257,6 +258,21 @@ export async function POST(
         writeLog('error', msg)
         return mcpOk(id, {
           content: [{ type: 'text', text: `❌ PDF Creator error: ${msg}` }],
+          isError: true,
+        })
+      }
+    }
+
+    // ── Data Summary handler ──────────────────────────────────
+    if (mcpSlug === 'data-summary') {
+      try {
+        const result = await handleDataSummaryTool(install, toolName ?? '', args, writeLog)
+        return mcpOk(id, result)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        writeLog('error', msg)
+        return mcpOk(id, {
+          content: [{ type: 'text', text: `❌ Data Summary error: ${msg}` }],
           isError: true,
         })
       }
