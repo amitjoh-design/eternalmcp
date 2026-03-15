@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   )
 
   const { data, error } = await db.storage.updateBucket('research-pdfs', {
+    public: false,
     allowedMimeTypes: [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
