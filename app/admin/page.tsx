@@ -6,8 +6,13 @@ import { motion } from 'framer-motion'
 import {
   Shield, CheckCircle, XCircle, Clock, Trash2,
   Users, Zap, BarChart3, RefreshCw, Eye, Settings,
-  Activity, Download, Globe, Monitor, Mail, FileText, CreditCard, Plus, Minus
+  Activity, Download, Globe, Monitor, Mail, FileText, CreditCard, Plus, Minus,
+  TrendingUp,
 } from 'lucide-react'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  Legend, ResponsiveContainer,
+} from 'recharts'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -17,7 +22,13 @@ import { format, subDays } from 'date-fns'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
-type AdminTab = 'overview' | 'pending' | 'tools' | 'users' | 'mcp-logs' | 'credits'
+type AdminTab = 'overview' | 'pending' | 'tools' | 'users' | 'mcp-logs' | 'credits' | 'analytics'
+
+interface AnalyticsRow {
+  date: string
+  pageviews: number
+  unique_visitors: number
+}
 
 interface McpCallLog {
   id: string
@@ -48,6 +59,10 @@ export default function AdminPage() {
   const [grantAmount, setGrantAmount] = useState<number>(100)
   const [grantLoading, setGrantLoading] = useState(false)
   const [totalResearchReports, setTotalResearchReports] = useState<number>(0)
+  const [analyticsRows, setAnalyticsRows] = useState<AnalyticsRow[]>([])
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [analyticsFrom, setAnalyticsFrom] = useState(() => format(subDays(new Date(), 30), 'yyyy-MM-dd'))
+  const [analyticsTo, setAnalyticsTo] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const router = useRouter()
   const supabase = createClient()
 
@@ -153,6 +168,20 @@ export default function AdminPage() {
     setTotalResearchReports(count ?? 0)
   }
 
+  const fetchAnalytics = async () => {
+    setAnalyticsLoading(true)
+    try {
+      const res = await fetch(`/api/admin/analytics?from=${analyticsFrom}&to=${analyticsTo}`)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Failed to fetch analytics')
+      setAnalyticsRows(json.rows ?? [])
+    } catch (err: any) {
+      toast.error(err.message ?? 'Analytics fetch failed')
+    } finally {
+      setAnalyticsLoading(false)
+    }
+  }
+
   const grantCredits = async (userId: string, amount: number) => {
     setGrantLoading(true)
     const targetUser = users.find((u) => u.id === userId)
@@ -190,6 +219,7 @@ export default function AdminPage() {
     { id: 'users', label: 'Users', icon: Users },
     { id: 'mcp-logs', label: 'MCP Logs', icon: Activity },
     { id: 'credits', label: 'Credits', icon: CreditCard },
+    { id: 'analytics', label: 'Analytics', icon: TrendingUp },
   ] as const
 
   return (
@@ -667,6 +697,163 @@ export default function AdminPage() {
             </div>
           </motion.div>
         )}
+        {/* Analytics */}
+        {tab === 'analytics' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            {/* Date range picker */}
+            <div className="bg-surface border border-border-subtle rounded-xl p-4 flex flex-wrap items-end gap-4">
+              <div>
+                <label className="block text-xs text-muted mb-1.5 font-medium">From</label>
+                <input
+                  type="date"
+                  value={analyticsFrom}
+                  onChange={(e) => setAnalyticsFrom(e.target.value)}
+                  className="bg-surface-2 border border-border-subtle rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1.5 font-medium">To</label>
+                <input
+                  type="date"
+                  value={analyticsTo}
+                  onChange={(e) => setAnalyticsTo(e.target.value)}
+                  className="bg-surface-2 border border-border-subtle rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary/50"
+                />
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={fetchAnalytics}
+                icon={<RefreshCw size={14} className={analyticsLoading ? 'animate-spin' : ''} />}
+              >
+                {analyticsLoading ? 'Loading…' : 'Fetch Analytics'}
+              </Button>
+              {/* Quick range presets */}
+              <div className="flex gap-2 ml-auto">
+                {[
+                  { label: '7d', days: 7 },
+                  { label: '14d', days: 14 },
+                  { label: '30d', days: 30 },
+                  { label: '90d', days: 90 },
+                ].map(({ label, days }) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      setAnalyticsFrom(format(subDays(new Date(), days), 'yyyy-MM-dd'))
+                      setAnalyticsTo(format(new Date(), 'yyyy-MM-dd'))
+                    }}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-border-subtle text-muted hover:text-text-primary hover:border-primary/30 transition-colors"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {analyticsRows.length > 0 ? (() => {
+              const totalViews = analyticsRows.reduce((s, r) => s + r.pageviews, 0)
+              const totalUnique = analyticsRows.reduce((s, r) => s + r.unique_visitors, 0)
+              const peak = analyticsRows.reduce((best, r) => r.pageviews > best.pageviews ? r : best, analyticsRows[0])
+              const avgDaily = Math.round(totalViews / analyticsRows.length)
+
+              return (
+                <>
+                  {/* Summary cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {[
+                      { label: 'Total Page Views', value: totalViews.toLocaleString(), icon: Globe, color: 'text-primary' },
+                      { label: 'Unique Visitors', value: totalUnique.toLocaleString(), icon: Users, color: 'text-accent' },
+                      { label: 'Avg Views / Day', value: avgDaily.toLocaleString(), icon: TrendingUp, color: 'text-emerald-400' },
+                      { label: `Peak Day`, value: `${peak.pageviews.toLocaleString()} views`, icon: Zap, color: 'text-yellow-400', sub: peak.date },
+                    ].map((s) => (
+                      <div key={s.label} className="bg-surface border border-border-subtle rounded-xl p-5">
+                        <s.icon size={20} className={`${s.color} mb-3`} />
+                        <p className="text-2xl font-black text-text-primary">{s.value}</p>
+                        <p className="text-xs text-muted mt-1">{s.label}</p>
+                        {s.sub && <p className="text-xs text-muted/60 mt-0.5">{s.sub}</p>}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Line chart */}
+                  <div className="bg-surface border border-border-subtle rounded-xl p-5">
+                    <h3 className="text-sm font-semibold text-text-primary mb-4">Daily Traffic</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={analyticsRows} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 11, fill: '#94a3b8' }}
+                          tickFormatter={(d) => {
+                            const dt = new Date(d)
+                            return `${dt.getDate()} ${dt.toLocaleString('default', { month: 'short' })}`
+                          }}
+                        />
+                        <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} width={40} />
+                        <Tooltip
+                          contentStyle={{ background: '#1a1a2e', border: '1px solid #2a2a3e', borderRadius: 8, fontSize: 12 }}
+                          labelStyle={{ color: '#f1f5f9', marginBottom: 4 }}
+                          labelFormatter={(d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                        <Line
+                          type="monotone"
+                          dataKey="pageviews"
+                          name="Page Views"
+                          stroke="#6366f1"
+                          strokeWidth={2}
+                          dot={false}
+                          activeDot={{ r: 4 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="unique_visitors"
+                          name="Unique Visitors"
+                          stroke="#22d3ee"
+                          strokeWidth={2}
+                          dot={false}
+                          activeDot={{ r: 4 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Data table */}
+                  <div className="bg-surface border border-border-subtle rounded-xl overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border-subtle">
+                          {['Date', 'Page Views', 'Unique Visitors'].map((h) => (
+                            <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...analyticsRows].reverse().map((row) => (
+                          <tr key={row.date} className="border-b border-border-subtle hover:bg-white/2 transition-colors">
+                            <td className="px-4 py-3 text-text-primary font-medium text-xs">
+                              {new Date(row.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </td>
+                            <td className="px-4 py-3 text-text-primary text-xs">{row.pageviews.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-accent text-xs">{row.unique_visitors.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )
+            })() : !analyticsLoading ? (
+              <div className="text-center py-20 bg-surface border border-border-subtle rounded-xl">
+                <TrendingUp size={40} className="text-border-subtle mx-auto mb-4" />
+                <p className="text-text-secondary text-sm">Select a date range and click Fetch Analytics.</p>
+              </div>
+            ) : null}
+          </motion.div>
+        )}
+
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
+import { PostHogProvider } from '@/components/PostHogProvider'
 import './globals.css'
 
 const inter = Inter({
@@ -71,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-background text-text-primary antialiased">
+        <PostHogProvider>
         <Navbar />
         <main>{children}</main>
         <Footer />
@@ -92,6 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             },
           }}
         />
+        </PostHogProvider>
       </body>
     </html>
   )
