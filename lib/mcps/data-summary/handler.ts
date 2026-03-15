@@ -868,7 +868,7 @@ export async function handleDataSummaryTool(
   const { error: uploadErr } = await db.storage
     .from('research-pdfs')
     .upload(storagePath, htmlBytes, {
-      contentType: 'text/html; charset=utf-8',
+      contentType: 'text/html',
       upsert: false,
     })
 
