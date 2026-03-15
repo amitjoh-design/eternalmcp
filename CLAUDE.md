@@ -168,7 +168,7 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 
 ### 4. Data Summary (`data-summary`)
 
-- **Files**: `lib/mcps/data-summary/handler.ts` + `lib/mcps/data-summary/definition.ts`
+- **Files**: `lib/mcps/data-summary/handler.ts` + `lib/mcps/data-summary/definition.ts` + `vendor/chart.ts` + `vendor/papaparse.ts`
 - **Tool**: `create_dashboard(csv_data, [title])`
 - **Flow**: CSV text → `generateDashboardHtml()` → upload to Supabase → proxy render URL
 - **No OAuth** — direct install
@@ -201,6 +201,7 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 | `dashboards/{user_id}/` path | Separate from `storage/`, `pdfs/`, `uploads/` prefixes in same bucket |
 | 24h TTL | Same as other MCP-generated files |
 | Demo CSV built-in | Tool works with zero user input — Claude can call `create_dashboard` with no args |
+| Vendor JS inlined (`vendor/chart.ts`, `vendor/papaparse.ts`) | Chart.js 4.4.0 + PapaParse 5.4.1 stored as TS string constants, injected directly into HTML — zero CDN round trips; dashboard is fully self-contained and offline-capable. **If upgrading libraries**, re-download minified JS and run through the Python escape script (escape backticks, `${`, backslashes) |
 
 ### 5. Gmail Sender (`gmail-sender`)
 
@@ -365,6 +366,7 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | (multi) | Added Data Summary MCP — `create_dashboard(csv_data, [title])`; full dark-themed BI dashboard (Chart.js + PapaParse); KPI cards, filters, Income/Expense sections with 4 chart types each, data table, Scenario Planner tab; stores HTML in `dashboards/{user_id}/`; 24h render URL via proxy route |
 | (multi) | Data Summary: fixed Supabase HTML MIME issue — added `/api/render/[...path]` proxy route serving `text/html`; added `text/html` to bucket MIME allowlist |
 | `4fb2446` | Data Summary: fixed JS parse error "Unexpected identifier 'type'" — replaced `[...new Set()]` with `Array.from(new Set())`, renamed `var types` → `var typeVals`, `setFilter(type,…)` → `setFilter(fType,…)` |
+| `2fa9c44` | Data Summary: inlined Chart.js 4.4.0 + PapaParse 5.4.1 as TypeScript string constants in `lib/mcps/data-summary/vendor/chart.ts` + `vendor/papaparse.ts` — dashboards are now fully self-contained, zero CDN round trips on load; eliminates 2 external JS fetches per dashboard open |
 
 ---
 
