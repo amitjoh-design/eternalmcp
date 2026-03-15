@@ -202,6 +202,7 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 | 24h TTL | Same as other MCP-generated files |
 | Demo CSV built-in | Tool works with zero user input — Claude can call `create_dashboard` with no args |
 | Vendor JS inlined (`vendor/chart.ts`, `vendor/papaparse.ts`) | Chart.js 4.4.0 + PapaParse 5.4.1 stored as TS string constants, injected directly into HTML — zero CDN round trips; dashboard is fully self-contained and offline-capable. **If upgrading libraries**, re-download minified JS and run through the Python escape script (escape backticks, `${`, backslashes) |
+| No inline onclick with string args in template literal | In a TypeScript template literal, `\'` is a valid escape sequence that produces `'` — the backslash is consumed. So `onclick="setFilter(\'type\'...)"` in the template becomes `onclick="setFilter('type'...)"` in the HTML, breaking the single-quoted JS string. **Rule: never use inline `onclick="fn('arg')"` inside the template literal.** Use `data-*` attributes + `addEventListener` after `innerHTML` is set instead. |
 
 ### 5. Gmail Sender (`gmail-sender`)
 
@@ -367,6 +368,7 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | (multi) | Data Summary: fixed Supabase HTML MIME issue — added `/api/render/[...path]` proxy route serving `text/html`; added `text/html` to bucket MIME allowlist |
 | `4fb2446` | Data Summary: fixed JS parse error "Unexpected identifier 'type'" — replaced `[...new Set()]` with `Array.from(new Set())`, renamed `var types` → `var typeVals`, `setFilter(type,…)` → `setFilter(fType,…)` |
 | `2fa9c44` | Data Summary: inlined Chart.js 4.4.0 + PapaParse 5.4.1 as TypeScript string constants in `lib/mcps/data-summary/vendor/chart.ts` + `vendor/papaparse.ts` — dashboards are now fully self-contained, zero CDN round trips on load; eliminates 2 external JS fetches per dashboard open |
+| `ee6cf5e` | Data Summary: fixed root-cause JS syntax error — in a TypeScript template literal, `\'` is consumed (outputs `'` not `\'`), breaking inline onclick strings like `setFilter('type',...)`. Fix: removed all inline onclick string args from chip buttons and sub-cards; wired click listeners via `addEventListener` after `innerHTML` is set, reading values from existing `data-filter`/`data-val`/`data-cat` attributes |
 
 ---
 
