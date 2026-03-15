@@ -27,6 +27,7 @@ Users connect MCP tools to Claude Desktop, which then calls those tools transpar
 | MCP Protocol | JSON-RPC over HTTP (spec 2024-11-05) |
 | PDF | `pdf-lib` (no filesystem access — Vercel compatible) |
 | AI | Anthropic SDK (`claude-haiku-4-5-20251001` for research tool) |
+| Dashboard | Chart.js v4 + PapaParse (CDN) — for Data Summary BI dashboards |
 
 ---
 
@@ -165,7 +166,43 @@ which is not enough for the research tool pipeline (API + PDF + upload = ~20s).
 | `pdfs/{user_id}/` path | Separate from `storage/{user_id}/` (Storage Manager) and `uploads/{user_id}/` (dashboard widget) |
 | 24h TTL | Same as Storage Manager — for sharing/transfer, not long-term hosting |
 
-### 4. Gmail Sender (`gmail-sender`)
+### 4. Data Summary (`data-summary`)
+
+- **Files**: `lib/mcps/data-summary/handler.ts` + `lib/mcps/data-summary/definition.ts`
+- **Tool**: `create_dashboard(csv_data, [title])`
+- **Flow**: CSV text → `generateDashboardHtml()` → upload to Supabase → proxy render URL
+- **No OAuth** — direct install
+- **Storage**: `research-pdfs` bucket, path `dashboards/{user_id}/{timestamp}_{slug}.html`
+- **DB table**: reuses `storage_files` — dashboards appear in Storage Manager `list_files`
+- **Render route**: `GET /api/render/dashboards/...` — proxy fetches from Supabase with service role, serves as `text/html` (Supabase forces `text/plain` for HTML files regardless of upload MIME type)
+- **Demo CSV**: 30-row Indian bank statement included in handler — used when no CSV is provided
+
+#### Dashboard features
+
+| Feature | Details |
+|---------|---------|
+| KPI cards | Total Income, Total Expenses, Net Balance, Savings Rate |
+| Filter bar | Type chips, date range inputs, search box, Reset All |
+| Sections | Income / Expense sections with sub-category cards |
+| Charts | Donut (distribution), Bar (by category), Line (trend), H-Bar (ranked) |
+| Data table | All rows with badge for type, formatted amounts |
+| Scenario Planner | Tab 2 — per-category sliders, Before/After comparison, delta chart |
+| Upload CSV | Nav button — paste or drag-and-drop new CSV to rebuild dashboard in-browser |
+
+#### Key Technical Decisions (Data Summary)
+
+| Decision | Reason |
+|----------|--------|
+| Proxy render route `/api/render/[...path]` | Supabase Storage forces `Content-Type: text/plain` for HTML files (security policy) regardless of upload MIME — proxy fetches with service role and serves with correct `text/html` header |
+| `contentType: 'text/html'` (no charset suffix) | Supabase rejects `text/html; charset=utf-8` (charset suffix) — must be bare `text/html` |
+| `Array.from(new Set(...))` not `[...new Set(...)]` | Spread-of-iterator caused "Unexpected identifier 'type'" JS parse error in some browsers |
+| `fType` not `type` as function parameter | Avoids keyword conflict in strict contexts; same for `typeVals` not `types` |
+| Reuses `storage_files` table | Dashboards appear in Storage Manager `list_files` — one unified file view |
+| `dashboards/{user_id}/` path | Separate from `storage/`, `pdfs/`, `uploads/` prefixes in same bucket |
+| 24h TTL | Same as other MCP-generated files |
+| Demo CSV built-in | Tool works with zero user input — Claude can call `create_dashboard` with no args |
+
+### 5. Gmail Sender (`gmail-sender`)
 
 - **File**: `lib/mcps/gmail/handler.ts` + `lib/mcps/gmail/definition.ts`
 - **Tools**: `send_email(to, subject, body, [cc], [bcc], [attachment_url])`, `create_draft(...)`
@@ -193,6 +230,9 @@ lib/
     pdf/
       definition.ts          ← Tool schema, supported formats, permissions
       handler.ts             ← create_pdf (markdown/text/HTML → pdf-lib → Supabase → signed URL)
+    data-summary/
+      definition.ts          ← Tool schema, metadata
+      handler.ts             ← create_dashboard (CSV → HTML → Supabase → proxy render URL)
   types.ts                   ← MCPTool, User, etc.
   mcp-crypto.ts              ← Token encryption/decryption
 
@@ -206,7 +246,10 @@ app/
         gmail/callback/route.ts
         storage-manager/route.ts
         pdf-creator/route.ts
+        data-summary/route.ts
       install/[token]/route.ts  ← Generates Mac .sh / Windows .bat scripts
+    render/
+      [...path]/route.ts     ← Proxy route: serves Supabase HTML dashboards with correct Content-Type
       disconnect/route.ts
       settings/route.ts      ← Save Anthropic API key for research tool
     upload/route.ts          ← File upload endpoint (multipart → Supabase Storage → signed URL)
@@ -318,6 +361,10 @@ MCP_TOKEN_ENCRYPTION_KEY=        ← For encrypting OAuth tokens in DB
 | `d7ab189` | Removed Fundamental Analysis section (5yr financials tables); renumbered to 7 sections; `max_tokens` set to 5000 |
 | `7fa7903` | Removed PDF generation entirely — tool now returns plain markdown text; removed pdf-lib, Supabase storage upload, signed URL, sanitizeForPdf; ~5-10s faster, no Latin-1 constraints |
 | `92d4875` | Added PDF Creator MCP — `create_pdf(content, filename, [title])`; accepts markdown/text/HTML; rejects binary/Word/Excel with helpful error; stores in `pdfs/{user_id}/`; tracked in `storage_files`; 24h signed URL |
+| (multi) | Landing page cleanup: removed all DeltaFlow Technologies references; fixed "₹0 Code Required" → "No Code Required"; removed Trading Intelligence Coming Soon card; removed Gnosis Tech Advisors from footer; GitHub link → `https://github.com/login` |
+| (multi) | Added Data Summary MCP — `create_dashboard(csv_data, [title])`; full dark-themed BI dashboard (Chart.js + PapaParse); KPI cards, filters, Income/Expense sections with 4 chart types each, data table, Scenario Planner tab; stores HTML in `dashboards/{user_id}/`; 24h render URL via proxy route |
+| (multi) | Data Summary: fixed Supabase HTML MIME issue — added `/api/render/[...path]` proxy route serving `text/html`; added `text/html` to bucket MIME allowlist |
+| `4fb2446` | Data Summary: fixed JS parse error "Unexpected identifier 'type'" — replaced `[...new Set()]` with `Array.from(new Set())`, renamed `var types` → `var typeVals`, `setFilter(type,…)` → `setFilter(fType,…)` |
 
 ---
 
@@ -380,6 +427,8 @@ const serviceClient = createClient(
 - Use streaming for any Anthropic API calls > 10s
 - Keep `max_tokens` within reason — current research tool uses 5000 at Haiku speed (~15-25s), well within 300s timeout
 - Pass `slug` prop to every `<ConfigSnippet>` usage
+- If generating HTML files for browser rendering: store in Supabase, return URL via `/api/render/[...path]` proxy (Supabase forces `text/plain` for HTML regardless of upload MIME)
+- Use `Array.from(new Set(...))` not `[...new Set(...)]` in inline HTML JavaScript — spread-of-iterator causes parse errors in some browser contexts
 
 **UI is fully automatic — no extra code needed for:**
 - `InstallModal` (Manage button): fully dynamic via `getMcpDefinition(slug)` — reads icon, name, and permissions from the definition file automatically
@@ -448,6 +497,7 @@ research-pdfs/
   uploads/{user_id}/           ← Dashboard FileUpload widget (7-day URLs)
   storage/{user_id}/           ← Storage Manager MCP (24-hour URLs)
   pdfs/{user_id}/              ← PDF Creator MCP (24-hour URLs, tracked in storage_files)
+  dashboards/{user_id}/        ← Data Summary MCP (24-hour URLs, tracked in storage_files)
 ```
 
 Note: Company Research no longer uploads PDFs — it returns plain markdown text directly.
