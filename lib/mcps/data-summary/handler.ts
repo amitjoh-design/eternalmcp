@@ -370,7 +370,7 @@ function detectCategoryCol(headers) {
   for (var i = 0; i < candidates.length; i++) {
     if (headers.indexOf(candidates[i]) >= 0) {
       var col = candidates[i];
-      var uniq = [...new Set(allRows.map(function(r) { return r[col]; }))];
+      var uniq = Array.from(new Set(allRows.map(function(r) { return r[col]; })));
       if (uniq.length >= 2 && uniq.length <= 30) return col;
     }
   }
@@ -492,10 +492,10 @@ function buildFilters() {
   var el = document.getElementById('filter-bar');
   var html = '';
   if (COLS.type) {
-    var types = [...new Set(allRows.map(function(r) { return r[COLS.type]; }))].filter(Boolean);
+    var typeVals = Array.from(new Set(allRows.map(function(r) { return r[COLS.type]; }))).filter(Boolean);
     html += '<div><div class="filter-label">Type</div><div class="filter-chips">';
     html += '<button class="chip active" data-filter="type" data-val="all" onclick="setFilter(\'type\',\'all\',this)">All</button>';
-    types.forEach(function(t) {
+    typeVals.forEach(function(t) {
       var cls = String(t).toLowerCase() === 'income' ? 'income-chip' : String(t).toLowerCase() === 'expense' ? 'expense-chip' : '';
       html += '<button class="chip ' + cls + '" data-filter="type" data-val="' + t + '" onclick="setFilter(\'type\',\'' + t + '\',this)">' + t + '</button>';
     });
@@ -517,8 +517,8 @@ function buildFilters() {
   el.innerHTML = html;
 }
 
-function setFilter(type, val, btn) {
-  activeFilters[type] = val;
+function setFilter(fType, val, btn) {
+  activeFilters[fType] = val;
   btn.closest('.filter-chips').querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
   btn.classList.add('active');
   applyFilters();
@@ -565,7 +565,7 @@ function buildSections() {
   if (!groups) {
     var rows = filteredRows;
     if (COLS.amount) {
-      var cats = COLS.category ? [...new Set(rows.map(function(r) { return r[COLS.category]; }))] : [];
+      var cats = COLS.category ? Array.from(new Set(rows.map(function(r) { return r[COLS.category]; }))) : [];
       container.innerHTML = '<div class="section"><div class="section-header"><div class="section-title">Data Overview</div></div>'
         + buildGenericCharts(rows, cats) + '</div>';
     }
@@ -581,7 +581,7 @@ function buildSections() {
     var headerCls = isExpense ? 'expense-header' : '';
     var totalCls = isExpense ? 'expense-total' : '';
     var total = rows.reduce(function(s,r) { return s + (parseFloat(r[COLS.amount]) || 0); }, 0);
-    var cats = COLS.category ? [...new Set(rows.map(function(r) { return r[COLS.category]; }))] : [];
+    var cats = COLS.category ? Array.from(new Set(rows.map(function(r) { return r[COLS.category]; }))) : [];
     var catTotals = {};
     if (COLS.category) {
       cats.forEach(function(c) {
@@ -624,7 +624,7 @@ function buildSections() {
       var rows = groups[key];
       var isExpense = key.toLowerCase().indexOf('expense') >= 0;
       var primaryColor = isExpense ? 'rgba(244,63,94,' : 'rgba(16,185,129,';
-      var cats = COLS.category ? [...new Set(rows.map(function(r) { return r[COLS.category]; }))] : [];
+      var cats = COLS.category ? Array.from(new Set(rows.map(function(r) { return r[COLS.category]; }))) : [];
       var catTotals = {};
       cats.forEach(function(c) {
         catTotals[c] = rows.filter(function(r) { return r[COLS.category] === c; }).reduce(function(s,r) { return s + (parseFloat(r[COLS.amount]) || 0); }, 0);
