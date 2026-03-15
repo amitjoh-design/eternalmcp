@@ -152,8 +152,8 @@ export function WhyIndia() {
             </div>
             <div className="flex items-center gap-4 flex-shrink-0">
               <div className="text-center">
-                <div className="text-3xl font-black bg-gradient-to-r from-orange-400 to-primary bg-clip-text text-transparent">₹0</div>
-                <div className="text-xs text-muted mt-1">No Code Required</div>
+                <div className="text-xl font-black bg-gradient-to-r from-orange-400 to-primary bg-clip-text text-transparent">No Code</div>
+                <div className="text-xs text-muted mt-1">Required</div>
               </div>
               <div className="w-px h-10 bg-border-subtle" />
               <div className="text-center">
