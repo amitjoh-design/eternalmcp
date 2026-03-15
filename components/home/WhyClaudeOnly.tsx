@@ -130,7 +130,7 @@ export function WhyClaudeOnly() {
                 We are building on Claude because Constitutional AI is the only right foundation for India&apos;s AI future.
               </span>
             </p>
-            <p className="text-sm text-muted">— Amit, Founder · EternalMCP / Gnosis Tech Advisors</p>
+            <p className="text-sm text-muted">— Amit, Founder · EternalMCP</p>
           </div>
         </motion.div>
       </div>
