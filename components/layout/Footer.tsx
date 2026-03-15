@@ -50,17 +50,6 @@ export function Footer() {
             <p className="text-sm text-text-secondary leading-relaxed mb-3 max-w-xs">
               India&apos;s only Claude-dedicated MCP platform. Bringing Constitutional AI to 1.4 billion people — zero code required.
             </p>
-            <p className="text-xs text-muted mb-5">
-              Under{' '}
-              <a
-                href="https://gnosistechadvisors.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:text-primary-light transition-colors"
-              >
-                Gnosis Tech Advisors
-              </a>
-            </p>
             <div className="flex items-center gap-3">
               <a
                 href="https://github.com/amitjoh-design/eternalmcp"
@@ -116,7 +105,7 @@ export function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-border-subtle">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             <p className="text-sm text-muted">
-              © {new Date().getFullYear()} EternalMCP · Gnosis Tech Advisors. All rights reserved.
+              © {new Date().getFullYear()} EternalMCP. All rights reserved.
             </p>
             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 rounded-full">
               <span className="text-xs text-orange-300">🇮🇳 Built for Bharat</span>
