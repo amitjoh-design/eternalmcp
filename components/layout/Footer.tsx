@@ -52,7 +52,7 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="https://github.com/amitjoh-design/eternalmcp"
+                href="https://github.com/login"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 text-muted hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
