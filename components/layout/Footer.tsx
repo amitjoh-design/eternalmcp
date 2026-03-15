@@ -30,7 +30,6 @@ const FOOTER_LINKS = {
 const ECOSYSTEM_LINKS = [
   { label: 'EternalQuants', href: 'https://eternalquants.com', description: 'Quantitative trading research' },
   { label: 'Gnosis Tech Advisors', href: 'https://gnosistechadvisors.com', description: 'Enterprise IT advisory' },
-  { label: 'DeltaFlow Technologies', href: '#', description: 'Trading software partner' },
 ]
 
 export function Footer() {

@@ -52,7 +52,7 @@ const FEATURED_TOOLS = [
     reviews: 0,
     usage: 'Coming Soon',
     tags: ['Quant', 'NIFTY 50', 'India'],
-    creator: 'DeltaFlow × EternalMCP',
+    creator: 'EternalMCP',
     featured: false,
     live: false,
   },
