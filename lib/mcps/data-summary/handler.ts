@@ -496,10 +496,10 @@ function buildFilters() {
   if (COLS.type) {
     var typeVals = Array.from(new Set(allRows.map(function(r) { return r[COLS.type]; }))).filter(Boolean);
     html += '<div><div class="filter-label">Type</div><div class="filter-chips">';
-    html += '<button class="chip active" data-filter="type" data-val="all" onclick="setFilter(\'type\',\'all\',this)">All</button>';
+    html += '<button class="chip active" data-filter="type" data-val="all">All</button>';
     typeVals.forEach(function(t) {
       var cls = String(t).toLowerCase() === 'income' ? 'income-chip' : String(t).toLowerCase() === 'expense' ? 'expense-chip' : '';
-      html += '<button class="chip ' + cls + '" data-filter="type" data-val="' + t + '" onclick="setFilter(\'type\',\'' + t + '\',this)">' + t + '</button>';
+      html += '<button class="chip ' + cls + '" data-filter="type" data-val="' + t + '">' + t + '</button>';
     });
     html += '</div></div>';
   }
@@ -517,6 +517,14 @@ function buildFilters() {
   html += '<input class="search-input" placeholder="Search..." oninput="setSearch(this.value)">';
   html += '<button class="reset-btn" onclick="resetFilters()">Reset All</button>';
   el.innerHTML = html;
+  // Wire chip clicks via event delegation (avoids inline string quoting issues)
+  el.querySelectorAll('[data-filter]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var fKey = btn.getAttribute('data-filter');
+      var fVal = btn.getAttribute('data-val');
+      setFilter(fKey, fVal, btn);
+    });
+  });
 }
 
 function setFilter(fType, val, btn) {
@@ -598,7 +606,7 @@ function buildSections() {
       html += '<div class="sub-grid">';
       cats.slice(0,12).forEach(function(c) {
         var pct = total > 0 ? ((catTotals[c] / total) * 100).toFixed(1) : 0;
-        html += '<div class="sub-card" onclick="filterByCategory(\'' + c + '\')">'
+        html += '<div class="sub-card" data-cat="' + c + '">'
               + '<div class="sub-name">' + c + '</div>'
               + '<div class="sub-amount" style="color:' + (isExpense ? 'var(--expense)' : 'var(--income)') + '">' + fmt(catTotals[c]) + '</div>'
               + '<div class="sub-pct">' + pct + '% of ' + key.toLowerCase() + '</div></div>';
@@ -619,6 +627,11 @@ function buildSections() {
     html += '</div></div>';
   });
   container.innerHTML = html;
+
+  // Wire sub-card clicks via event delegation (avoids inline string quoting issues)
+  container.querySelectorAll('[data-cat]').forEach(function(card) {
+    card.addEventListener('click', function() { filterByCategory(card.getAttribute('data-cat')); });
+  });
 
   // Render charts after DOM update
   setTimeout(function() {
