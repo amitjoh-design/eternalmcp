@@ -2,6 +2,8 @@
 // Generates a full interactive BI dashboard HTML file from CSV data
 
 import { createClient } from '@supabase/supabase-js'
+import { CHART_JS } from './vendor/chart'
+import { PAPA_PARSE } from './vendor/papaparse'
 
 const DEMO_CSV = `Date,Description,Category,Type,Amount
 2024-01-05,Salary Credit,Salary,Income,85000
@@ -53,8 +55,8 @@ function generateDashboardHtml(csvData: string, title: string): string {
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>${title}</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"><\/script>
+<script>${CHART_JS}<\/script>
+<script>${PAPA_PARSE}<\/script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
