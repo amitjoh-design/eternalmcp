@@ -880,18 +880,6 @@ export async function handleDataSummaryTool(
     }
   }
 
-  const { data: signed, error: signErr } = await db.storage
-    .from('research-pdfs')
-    .createSignedUrl(storagePath, 86400)
-
-  if (signErr || !signed?.signedUrl) {
-    writeLog('error', signErr?.message ?? 'signed URL failed')
-    return {
-      content: [{ type: 'text', text: `❌ Could not generate link: ${signErr?.message}` }],
-      isError: true,
-    }
-  }
-
   const expiresAt = new Date(Date.now() + 86400 * 1000).toISOString()
   await db.from('storage_files').insert({
     user_id: userId,
@@ -902,13 +890,16 @@ export async function handleDataSummaryTool(
     expires_at: expiresAt,
   })
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.eternalmcp.com'
+  const renderUrl = `${appUrl}/api/render/${storagePath}`
+
   writeLog('success')
 
   return {
     content: [
       {
         type: 'text',
-        text: `✅ **Interactive Dashboard Created!**\n\n🔗 [Open Dashboard](${signed.signedUrl})\n\n📊 **What's inside:**\n- KPI summary cards (Total Income, Expenses, Net Balance, Savings Rate)\n- Live filter panel — filter by type, date range, search\n- Charts: Donut, Bar, Trend Line, Ranked Bar (per section)\n- Scenario Planner — adjust any category and see instant impact\n\n⏱️ Link valid for **24 hours**. Use Storage Manager to keep it longer.`,
+        text: `✅ **Interactive Dashboard Created!**\n\n🔗 [Open Dashboard](${renderUrl})\n\n📊 **What's inside:**\n- KPI summary cards (Total Income, Expenses, Net Balance, Savings Rate)\n- Live filter panel — filter by type, date range, search\n- Charts: Donut, Bar, Trend Line, Ranked Bar (per section)\n- Scenario Planner — adjust any category and see instant impact\n\n⏱️ Link valid for **24 hours**. Use Storage Manager to keep it longer.`,
       },
     ],
   }
